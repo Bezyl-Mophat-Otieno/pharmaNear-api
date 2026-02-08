@@ -5,6 +5,7 @@ class ProductRepository {
   columnNames = `
       p.product_id,
       p.name,
+      b.bussiness_name,
       p.slug,
       p.description,
       p.stock,
@@ -29,8 +30,8 @@ class ProductRepository {
   async create(product) {
     const slug = generateSlug(product.name);
     const query = `
-      INSERT INTO bq_products (
-        name, slug, description, stock, low_stock_threshold, discount_amount,
+      INSERT INTO ph_products (
+        business_id, name, slug, description, stock, low_stock_threshold, discount_amount,
         status, is_featured, category_id,sub_category_id, images,
         materials, available_sizes, care_instructions, buying_price, selling_price
       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
@@ -38,6 +39,7 @@ class ProductRepository {
     `;
 
     const values = [
+      product.business_id,
       product.name,
       slug,
       product.description,
@@ -62,9 +64,10 @@ class ProductRepository {
 
   async findAll(page, limit) {
     const offset = (page - 1) * limit;
-    const res = await db.query(`SELECT ${this.columnNames} FROM bq_products p 
-                                INNER JOIN bq_categories c ON c.category_id = p.category_id
-                                INNER JOIN bq_subcategories s ON s.sub_category_id = p.sub_category_id
+    const res = await db.query(`SELECT ${this.columnNames} FROM ph_products p 
+                                INNER JOIN ph_categories c ON c.category_id = p.category_id
+                                INNER JOIN ph_subcategories s ON s.sub_category_id = p.sub_category_id
+                                INNER JOIN ph_businesses b ON b.business_id = p.business_id
                                 WHERE p.status <> 'deleted'
                                 ORDER BY p.created_at DESC LIMIT $1 OFFSET $2`, [limit, offset]);
     return res.rows;
@@ -72,15 +75,16 @@ class ProductRepository {
 
   async findById(id) {
   const productRes = await db.query(
-    `SELECT ${this.columnNames} FROM bq_products p 
-                                INNER JOIN bq_categories c ON c.category_id = p.category_id
-                                INNER JOIN bq_subcategories s ON s.sub_category_id = p.sub_category_id
+    `SELECT ${this.columnNames} FROM ph_products p 
+                                INNER JOIN ph_categories c ON c.category_id = p.category_id
+                                INNER JOIN ph_subcategories s ON s.sub_category_id = p.sub_category_id
+                                INNER JOIN ph_businesses b ON b.business_id = p.business_id
                                 WHERE p.product_id = $1 AND p.status <> 'deleted'`,
     [id]
   );
 
   const ratingRes = await db.query(
-    `SELECT ROUND(AVG(rating)::numeric, 1) AS average_rating FROM bq_product_feedback WHERE product_id = $1`,
+    `SELECT ROUND(AVG(rating)::numeric, 1) AS average_rating FROM ph_product_feedback WHERE product_id = $1`,
     [id]
   );
 
@@ -111,7 +115,7 @@ class ProductRepository {
     values.push(product_id);
 
     const query = `
-      UPDATE bq_products SET ${fields.join(", ")}, updated_at = CURRENT_TIMESTAMP
+      UPDATE ph_products SET ${fields.join(", ")}, updated_at = CURRENT_TIMESTAMP
       WHERE product_id = $${i} RETURNING *;
     `;
 
@@ -120,8 +124,96 @@ class ProductRepository {
   }
 
   async delete(id) {
-    await db.query(`UPDATE bq_products SET status ='deleted' WHERE product_id = $1`, [id]);
+    await db.query(`UPDATE ph_products SET status ='deleted' WHERE product_id = $1`, [id]);
   }
+  async searchProducts({
+  query,
+  userLat,
+  userLng,
+  radiusKm = 20,
+  limit = 20,
+  offset = 0
+}) {
+  const values = [];
+  let i = 1;
+
+  let distanceSelect = "";
+  let distanceWhere = "";
+  let orderBy = "p.created_at DESC";
+
+  if (userLat && userLng) {
+    distanceSelect = `,
+      ST_Distance(
+        b.location,
+        ST_MakePoint($${i + 1}, $${i})::geography
+      ) / 1000 AS distance_km
+    `;
+
+    values.push(userLat, userLng);
+    i += 2;
+
+    distanceWhere = `
+      AND ST_DWithin(
+        b.location,
+        ST_MakePoint($${i - 1}, $${i - 2})::geography,
+        $${i} * 1000
+      )
+    `;
+    values.push(radiusKm);
+    i++;
+
+    orderBy = "distance_km ASC";
+  }
+
+  const sql = `
+    SELECT
+      ${this.baseSelect}
+      ${distanceSelect}
+    FROM ph_products p
+    INNER JOIN ph_businesses b ON b.business_id = p.business_id
+    WHERE
+      p.status = 'active'
+      AND b.status = 'active'
+      AND p.name ILIKE $${i}
+      ${distanceWhere}
+    ORDER BY ${orderBy}
+    LIMIT $${i + 1} OFFSET $${i + 2};
+  `;
+
+  values.push(`%${query}%`, limit, offset);
+
+  const res = await db.query(sql, values);
+  return res.rows;
+}
+
+async findByIdWithBusiness(productId, userLat, userLng) {
+  const values = [productId];
+  let distanceSelect = "";
+
+  if (userLat && userLng) {
+    distanceSelect = `,
+      ST_Distance(
+        b.location,
+        ST_MakePoint($3, $2)::geography
+      ) / 1000 AS distance_km
+    `;
+    values.push(userLat, userLng);
+  }
+
+  const sql = `
+    SELECT
+      ${this.baseSelect}
+      ${distanceSelect}
+    FROM ph_products p
+    INNER JOIN ph_businesses b ON b.business_id = p.business_id
+    WHERE p.product_id = $1 AND p.status = 'active';
+  `;
+
+  const res = await db.query(sql, values);
+  return res.rows[0] || null;
+}
+
+
 }
 
 module.exports = new ProductRepository();

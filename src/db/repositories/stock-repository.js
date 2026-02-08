@@ -47,7 +47,7 @@ class StockRepository {
 
     const query = `
       SELECT ${this.columnNames}
-      FROM bq_products p
+      FROM ph_products p
       ${whereClause}
       ORDER BY p.name ASC
       LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
@@ -68,7 +68,7 @@ class StockRepository {
         COUNT(CASE WHEN stock > low_stock_threshold THEN 1 END) as healthy_stock_count,
         SUM(stock) as total_stock_units,
         AVG(stock) as average_stock_per_product
-      FROM bq_products
+      FROM ph_products
     `);
 
     return res.rows[0];
@@ -77,7 +77,7 @@ class StockRepository {
   async getLowStock(limit = 20, offset = 0) {
     const query = `
       SELECT ${this.columnNames}
-      FROM bq_products p
+      FROM ph_products p
       WHERE p.stock > 0 AND p.stock <= p.low_stock_threshold
       ORDER BY p.stock ASC
       LIMIT $1 OFFSET $2;
@@ -90,7 +90,7 @@ class StockRepository {
   async getOutOfStock(limit = 20, offset = 0) {
     const query = `
       SELECT ${this.columnNames}
-      FROM bq_products p
+      FROM ph_products p
       WHERE p.stock = 0
       ORDER BY p.updated_at DESC
       LIMIT $1 OFFSET $2;
@@ -103,7 +103,7 @@ class StockRepository {
   async getTopSellingProducts(limit = 10, offset = 0) {
     const query = `
       SELECT ${this.columnNames}
-      FROM bq_products p
+      FROM ph_products p
       WHERE p.total_sold > 0
       ORDER BY p.total_sold DESC
       LIMIT $1 OFFSET $2;
@@ -119,7 +119,7 @@ class StockRepository {
 
       // Get current stock
       const currentRes = await db.query(
-        `SELECT stock FROM bq_products WHERE product_id = $1`,
+        `SELECT stock FROM ph_products WHERE product_id = $1`,
         [productId]
       );
 
@@ -132,7 +132,7 @@ class StockRepository {
 
       // Update product stock
       await db.query(
-        `UPDATE bq_products 
+        `UPDATE ph_products 
          SET stock = $1, updated_at = CURRENT_TIMESTAMP 
          WHERE product_id = $2`,
         [newStock, productId]
@@ -152,7 +152,7 @@ class StockRepository {
 
       // Get current stock
       const currentRes = await db.query(
-        `SELECT stock FROM bq_products WHERE product_id = $1`,
+        `SELECT stock FROM ph_products WHERE product_id = $1`,
         [productId]
       );
 
@@ -165,7 +165,7 @@ class StockRepository {
 
       // Update product stock
       await db.query(
-        `UPDATE bq_products 
+        `UPDATE ph_products 
          SET stock = stock + $1, updated_at = CURRENT_TIMESTAMP 
          WHERE product_id = $2`,
         [quantity, productId]

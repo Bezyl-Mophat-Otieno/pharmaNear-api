@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS bq_categories (
+CREATE TABLE IF NOT EXISTS ph_categories (
   category_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR(100) NOT NULL UNIQUE,
   description TEXT,

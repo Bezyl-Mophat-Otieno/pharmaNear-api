@@ -48,7 +48,7 @@ class OrdersRepository {
       }, 0);
 
       const insertOrderQuery = `
-        INSERT INTO bq_orders (customer_fullname, customer_email, customer_phone, method_of_payment, order_number, total_amount, shipping_address, notes)
+        INSERT INTO ph_orders (customer_fullname, customer_email, customer_phone, method_of_payment, order_number, total_amount, shipping_address, notes)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING *;
       `;
@@ -67,7 +67,7 @@ class OrdersRepository {
       const order = orderRes.rows[0];
 
       const insertItemQuery = `
-        INSERT INTO bq_order_items (order_id, product_id, quantity, unit_price, subtotal)
+        INSERT INTO ph_order_items (order_id, product_id, quantity, unit_price, subtotal)
         VALUES ($1, $2, $3, $4, $5);
       `;
 
@@ -92,10 +92,10 @@ class OrdersRepository {
 
   async getOrderById(id) {
     const orderRes = await db.query(`
-      SELECT ${this.columnNames} FROM bq_orders o
-      INNER JOIN bq_order_items oi
+      SELECT ${this.columnNames} FROM ph_orders o
+      INNER JOIN ph_order_items oi
         ON oi.order_id = o.order_id
-      INNER JOIN bq_products p
+      INNER JOIN ph_products p
         ON p.product_id = oi.product_id
       WHERE o.order_id = $1
       GROUP BY
@@ -106,10 +106,10 @@ class OrdersRepository {
   }
 
   async getOrdersByUserEmail(email) {
-    const orderRes = await db.query(`SELECT ${this.columnNames} FROM bq_orders o
-      INNER JOIN bq_order_items oi
+    const orderRes = await db.query(`SELECT ${this.columnNames} FROM ph_orders o
+      INNER JOIN ph_order_items oi
         ON oi.order_id = o.order_id
-      INNER JOIN bq_products p
+      INNER JOIN ph_products p
         ON p.product_id = oi.product_id
       WHERE o.customer_email = $1
       GROUP BY
@@ -120,10 +120,10 @@ class OrdersRepository {
 
   async getAllOrders({ status, limit = 20, offset = 0 }) {
     let query = `SELECT ${this.columnNames}
-      FROM bq_orders o
-      INNER JOIN bq_order_items oi
+      FROM ph_orders o
+      INNER JOIN ph_order_items oi
         ON oi.order_id = o.order_id
-      INNER JOIN bq_products p
+      INNER JOIN ph_products p
         ON p.product_id = oi.product_id
       `;
     const params = [];
@@ -143,7 +143,7 @@ class OrdersRepository {
   async updateOrderStatus(id, status) {
     const res = await db.query(
       `
-      UPDATE bq_orders
+      UPDATE ph_orders
       SET status = $1::order_status_enum,
           delivered_at = CASE WHEN $1::order_status_enum = 'delivered' THEN CURRENT_TIMESTAMP ELSE delivered_at END,
           updated_at = CURRENT_TIMESTAMP
@@ -162,7 +162,7 @@ class OrdersRepository {
 
       // Get current payment status to check if we're switching to 'paid'
       const currentOrderRes = await db.query(
-        `SELECT payment_status FROM bq_orders WHERE order_id = $1`,
+        `SELECT payment_status FROM ph_orders WHERE order_id = $1`,
         [id]
       );
 
@@ -175,7 +175,7 @@ class OrdersRepository {
       // Update the payment status
       const res = await db.query(
         `
-        UPDATE bq_orders
+        UPDATE ph_orders
         SET payment_status = $1::payment_status_enum,
             updated_at = CURRENT_TIMESTAMP
         WHERE order_id = $2
@@ -188,7 +188,7 @@ class OrdersRepository {
       if (paymentStatus === 'paid' && currentPaymentStatus !== 'paid') {
         // Get all order items for this order
         const orderItemsRes = await db.query(
-          `SELECT product_id, quantity FROM bq_order_items WHERE order_id = $1`,
+          `SELECT product_id, quantity FROM ph_order_items WHERE order_id = $1`,
           [id]
         );
 
@@ -196,7 +196,7 @@ class OrdersRepository {
         for (const item of orderItemsRes.rows) {
           await db.query(
             `
-            UPDATE bq_products 
+            UPDATE ph_products 
             SET stock = stock - $1,
                 total_sold = total_sold + $1,
                 updated_at = CURRENT_TIMESTAMP
@@ -207,7 +207,7 @@ class OrdersRepository {
 
           // Check if stock update was successful (affected rows > 0)
           const stockCheckRes = await db.query(
-            `SELECT stock FROM bq_products WHERE product_id = $1`,
+            `SELECT stock FROM ph_products WHERE product_id = $1`,
             [item.product_id]
           );
 
@@ -231,7 +231,7 @@ class OrdersRepository {
 
   async deleteOrder(id) {
     // Optional: implement a soft delete
-    await db.query(`UPDATE bq_orders SET status = 'cancelled'::order_status_enum, updated_at = CURRENT_TIMESTAMP WHERE order_id = $1`, [id]);
+    await db.query(`UPDATE ph_orders SET status = 'cancelled'::order_status_enum, updated_at = CURRENT_TIMESTAMP WHERE order_id = $1`, [id]);
   }
 
   async cancelOrder(id, reason = null) {
@@ -240,7 +240,7 @@ class OrdersRepository {
 
       // Get current order details
       const orderRes = await db.query(
-        `SELECT status, payment_status FROM bq_orders WHERE order_id = $1`,
+        `SELECT status, payment_status FROM ph_orders WHERE order_id = $1`,
         [id]
       );
 
@@ -262,7 +262,7 @@ class OrdersRepository {
       // Update order status to cancelled
       await db.query(
         `
-        UPDATE bq_orders
+        UPDATE ph_orders
         SET status = 'cancelled'::order_status_enum,
             updated_at = CURRENT_TIMESTAMP
         WHERE order_id = $1
@@ -275,7 +275,7 @@ class OrdersRepository {
       if (currentPaymentStatus === 'paid') {
         await db.query(
           `
-          UPDATE bq_orders
+          UPDATE ph_orders
           SET payment_status = 'refunded'::payment_status_enum,
               updated_at = CURRENT_TIMESTAMP
           WHERE order_id = $1
@@ -285,7 +285,7 @@ class OrdersRepository {
 
         // Get all order items to revert stock changes
         const orderItemsRes = await db.query(
-          `SELECT product_id, quantity FROM bq_order_items WHERE order_id = $1`,
+          `SELECT product_id, quantity FROM ph_order_items WHERE order_id = $1`,
           [id]
         );
 
@@ -293,7 +293,7 @@ class OrdersRepository {
         for (const item of orderItemsRes.rows) {
           await db.query(
             `
-            UPDATE bq_products 
+            UPDATE ph_products 
             SET stock = stock + $1,
                 total_sold = GREATEST(total_sold - $1, 0),
                 updated_at = CURRENT_TIMESTAMP
@@ -308,7 +308,7 @@ class OrdersRepository {
       if (reason) {
         await db.query(
           `
-          UPDATE bq_orders
+          UPDATE ph_orders
           SET notes = COALESCE(notes || ' | ', '') || 'Cancellation reason: ' || $1
           WHERE order_id = $2
         `,
@@ -320,7 +320,7 @@ class OrdersRepository {
       
       // Return updated order
       const finalOrderRes = await db.query(
-        `SELECT * FROM bq_orders WHERE order_id = $1`,
+        `SELECT * FROM ph_orders WHERE order_id = $1`,
         [id]
       );
       
@@ -332,7 +332,7 @@ class OrdersRepository {
   }
 
    async getItemsByOrder(orderId) {
-    const res = await db.query(`SELECT * FROM bq_order_items WHERE order_id = $1`, [orderId]);
+    const res = await db.query(`SELECT * FROM ph_order_items WHERE order_id = $1`, [orderId]);
     return res.rows;
   }
 }

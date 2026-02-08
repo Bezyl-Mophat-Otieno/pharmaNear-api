@@ -4,7 +4,7 @@ class FeedbackRepository {
   async addFeedback({ productId, name, rating, comment }) {
     const res = await db.query(
       `
-      INSERT INTO bq_product_feedback (product_id, name, rating, comment)
+      INSERT INTO ph_product_feedback (product_id, name, rating, comment)
       VALUES ($1, $2, $3, $4)
       RETURNING *
       `,
@@ -17,7 +17,7 @@ class FeedbackRepository {
     const res = await db.query(
       `
       SELECT id, name, rating, comment, created_at
-      FROM bq_product_feedback
+      FROM ph_product_feedback
       WHERE product_id = $1
       ORDER BY created_at DESC
       `,
@@ -28,7 +28,7 @@ class FeedbackRepository {
 
   async getAverageRating(productId) {
     const res = await db.query(
-      `SELECT ROUND(AVG(rating)::numeric, 1) AS average_rating FROM bq_product_feedback WHERE product_id = $1`,
+      `SELECT ROUND(AVG(rating)::numeric, 1) AS average_rating FROM ph_product_feedback WHERE product_id = $1`,
       [productId]
     );
     return res.rows[0].average_rating || 0;
@@ -39,8 +39,8 @@ class FeedbackRepository {
     const res = await db.query(
       `
       SELECT f.*, p.name AS product_name
-      FROM bq_product_feedback f
-      JOIN bq_products p ON f.product_id = p.id
+      FROM ph_product_feedback f
+      JOIN ph_products p ON f.product_id = p.id
       ORDER BY f.created_at DESC
       LIMIT $1 OFFSET $2
       `,
@@ -50,13 +50,13 @@ class FeedbackRepository {
   }
 
   async deleteFeedback(id) {
-    await db.query(`DELETE FROM bq_product_feedback WHERE id = $1`, [id]);
+    await db.query(`DELETE FROM ph_product_feedback WHERE id = $1`, [id]);
   }
 
   async updateFeedback(id, { name, rating, comment }) {
     const res = await db.query(
       `
-      UPDATE bq_product_feedback
+      UPDATE ph_product_feedback
       SET name = $1, rating = $2, comment = $3
       WHERE id = $4
       RETURNING *

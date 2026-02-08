@@ -5,7 +5,7 @@ const {bcryptVerifyPassword} = require("../../utils/bcrypt");
 class UserRepository {
   async findByEmail(email) {
     try {
-      const result = await db.query("SELECT * FROM bq_users WHERE email = $1", [email]);
+      const result = await db.query("SELECT * FROM ph_users WHERE email = $1", [email]);
       return result.rows[0] || null;
     } catch (err) {
       log(LOG_LEVELS.ERROR, "UserRepository.findByEmail failed", {
@@ -19,7 +19,7 @@ class UserRepository {
   async createUser({ name, email, password, role= "customer" }) {
     try {
       const result = await db.query(
-        "INSERT INTO bq_users (name, email, password, role, status) VALUES ($1, $2, $3, $4, 'active') RETURNING *",
+        "INSERT INTO ph_users (name, email, password, role, status) VALUES ($1, $2, $3, $4, 'active') RETURNING *",
         [name, email, password, role]
       );
       return result.rows[0];
@@ -50,7 +50,7 @@ class UserRepository {
     try {
       const
         result = await db.query(
-          "UPDATE bq_users SET password_hash = $1, updated_at = NOW() WHERE id = $2 RETURNING *",
+          "UPDATE ph_users SET password_hash = $1, updated_at = NOW() WHERE id = $2 RETURNING *",
           [newPassword, userId]
         );
       return result.rows[0];
@@ -68,7 +68,7 @@ class UserRepository {
       try {
         const offset = (page - 1) * limit;
         const result = await db.query(
-          `SELECT * FROM bq_users WHERE role=$1 AND deleted = 0 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+          `SELECT * FROM ph_users WHERE role=$1 AND deleted = 0 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
           [role, limit, offset]
         );
         return result.rows;
@@ -86,7 +86,7 @@ class UserRepository {
   async deleteUser(userId) {
     try {
       const result = await db.query(
-        "UPDATE bq_users SET deleted = 1 WHERE user_id = $1 RETURNING *",
+        "UPDATE ph_users SET deleted = 1 WHERE user_id = $1 RETURNING *",
         [userId]
       );
       return result.rowCount > 0;
@@ -103,7 +103,7 @@ class UserRepository {
   async suspendUser(userId) {
     try {
       const result = await db.query(
-        "UPDATE bq_users SET status = 'suspended', updated_at = NOW() WHERE user_id = $1 RETURNING *",
+        "UPDATE ph_users SET status = 'suspended', updated_at = NOW() WHERE user_id = $1 RETURNING *",
         [userId]
       );
       return result.rows[0];
@@ -120,7 +120,7 @@ class UserRepository {
   async reactivateUser(userId) {
     try {
       const result = await db.query(
-        "UPDATE bq_users SET status = 'active', updated_at = NOW() WHERE user_id = $1 RETURNING *",
+        "UPDATE ph_users SET status = 'active', updated_at = NOW() WHERE user_id = $1 RETURNING *",
         [userId]
       );
       return result.rows[0];

@@ -52,4 +52,55 @@ router.delete("/:id", async (req, res, next) => {
   }
 });
 
+/* ------------------------------------------------------------------
+  SEARCH PRODUCTS (Search + optional geo + pagination)
+------------------------------------------------------------------ */
+router.get("/product-search", paginate, async (req, res, next) => {
+  try {
+    const { page, limit } = req.pagination;
+    const { search, lat, lng, radiusKm } = req.query;
+
+    const products = await productRepo.searchProducts({
+      page,
+      limit,
+      search,
+      lat: lat ? parseFloat(lat) : null,
+      lng: lng ? parseFloat(lng) : null,
+      radiusKm: radiusKm ? parseFloat(radiusKm) : null
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Products fetched successfully",
+      data: products
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ------------------------------------------------------------------
+  GET PRODUCT DETAILS (with business info + distance)
+------------------------------------------------------------------ */
+router.get("/location-based/:id", async (req, res, next) => {
+  try {
+    const { lat, lng } = req.query;
+
+    const product = await productRepo.findByIdWithBusiness(
+      req.params.id,
+      lat ? parseFloat(lat) : null,
+      lng ? parseFloat(lng) : null
+    );
+
+    if (!product) return res.status(404).json({ error: "Product not found" });
+
+    res.status(200).json({
+      success: true,
+      data: product
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

@@ -44,7 +44,7 @@ class TransactionRepository {
 
       // First create transaction details
       const detailsQuery = `
-        INSERT INTO bq_transaction_details (
+        INSERT INTO ph_transaction_details (
           method_of_payment, total_amount_received, recieved_by, notes
         ) VALUES ($1, $2, $3, $4)
         RETURNING transaction_details_id;
@@ -61,7 +61,7 @@ class TransactionRepository {
 
       // Then create the transaction
       const transactionQuery = `
-        INSERT INTO bq_transactions (
+        INSERT INTO ph_transactions (
           transaction_number, transaction_details_id, order_id, customer_fullname,
           customer_email, customer_phone, method_of_payment, transaction_type,
           payment_status, total_amount
@@ -92,9 +92,9 @@ class TransactionRepository {
   async getAllTransactions({ status, transactionType, methodOfPayment, limit = 20, offset = 0 }) {
     let query = `
       SELECT ${this.columnNames}
-      FROM bq_transactions t
-      LEFT JOIN bq_transaction_details td ON t.transaction_details_id = td.transaction_details_id
-      LEFT JOIN bq_users u ON t.reconciled_by = u.user_id
+      FROM ph_transactions t
+      LEFT JOIN ph_transaction_details td ON t.transaction_details_id = td.transaction_details_id
+      LEFT JOIN ph_users u ON t.reconciled_by = u.user_id
       WHERE 1=1
     `;
     const params = [];
@@ -128,9 +128,9 @@ class TransactionRepository {
   async getTransactionById(id) {
     const res = await db.query(`
       SELECT ${this.columnNames}
-      FROM bq_transactions t
-      LEFT JOIN bq_transaction_details td ON t.transaction_details_id = td.transaction_details_id
-      LEFT JOIN bq_users u ON t.reconciled_by = u.user_id
+      FROM ph_transactions t
+      LEFT JOIN ph_transaction_details td ON t.transaction_details_id = td.transaction_details_id
+      LEFT JOIN ph_users u ON t.reconciled_by = u.user_id
       WHERE t.transaction_id = $1
     `, [id]);
 
@@ -140,9 +140,9 @@ class TransactionRepository {
   async getTransactionsByOrderId(orderId) {
     const res = await db.query(`
       SELECT ${this.columnNames}
-      FROM bq_transactions t
-      LEFT JOIN bq_transaction_details td ON t.transaction_details_id = td.transaction_details_id
-      LEFT JOIN bq_users u ON t.reconciled_by = u.user_id
+      FROM ph_transactions t
+      LEFT JOIN ph_transaction_details td ON t.transaction_details_id = td.transaction_details_id
+      LEFT JOIN ph_users u ON t.reconciled_by = u.user_id
       WHERE t.order_id = $1
       ORDER BY t.created_at DESC
     `, [orderId]);
@@ -152,7 +152,7 @@ class TransactionRepository {
 
   async updateTransactionStatus(id, status) {
     const res = await db.query(`
-      UPDATE bq_transactions
+      UPDATE ph_transactions
       SET payment_status = $1::payment_status_enum,
           updated_at = CURRENT_TIMESTAMP
       WHERE transaction_id = $2
@@ -168,7 +168,7 @@ class TransactionRepository {
 
       // Update transaction as reconciled
       const transactionRes = await db.query(`
-        UPDATE bq_transactions
+        UPDATE ph_transactions
         SET reconcilled = TRUE,
             reconciled_by = $1,
             reconciled_at = CURRENT_TIMESTAMP,
@@ -185,7 +185,7 @@ class TransactionRepository {
       // Update transaction details with reconciliation notes
       if (notes) {
         await db.query(`
-          UPDATE bq_transaction_details
+          UPDATE ph_transaction_details
           SET notes = COALESCE(notes || ' | ', '') || 'Reconciliation: ' || $1,
               updated_at = CURRENT_TIMESTAMP
           WHERE transaction_details_id = $2
@@ -206,7 +206,7 @@ class TransactionRepository {
 
       // Get original transaction details
       const originalRes = await db.query(`
-        SELECT * FROM bq_transactions WHERE transaction_id = $1
+        SELECT * FROM ph_transactions WHERE transaction_id = $1
       `, [originalTransactionId]);
 
       if (!originalRes.rows.length) {
@@ -218,7 +218,7 @@ class TransactionRepository {
 
       // Create refund transaction details
       const detailsQuery = `
-        INSERT INTO bq_transaction_details (
+        INSERT INTO ph_transaction_details (
           method_of_payment, total_amount_received, recieved_by, notes
         ) VALUES ($1, $2, $3, $4)
         RETURNING transaction_details_id;
@@ -233,7 +233,7 @@ class TransactionRepository {
 
       // Create refund transaction
       const refundQuery = `
-        INSERT INTO bq_transactions (
+        INSERT INTO ph_transactions (
           transaction_number, transaction_details_id, order_id, customer_fullname,
           customer_email, customer_phone, method_of_payment, transaction_type,
           payment_status, total_amount, reconcilled, reconciled_by, reconciled_at
@@ -258,7 +258,7 @@ class TransactionRepository {
 
       // Update transaction_details with the transaction_id
       await db.query(
-        `UPDATE bq_transaction_details SET transaction_id = $1 WHERE transaction_details_id = $2`,
+        `UPDATE ph_transaction_details SET transaction_id = $1 WHERE transaction_details_id = $2`,
         [refundRes.rows[0].transaction_id, detailsRes.rows[0].transaction_details_id]
       );
 
@@ -289,8 +289,8 @@ class TransactionRepository {
             WHEN t.payment_status = 'paid' AND t.transaction_type = 'order_payment' 
             THEN (
               SELECT SUM(oi.quantity * (p.selling_price - p.buying_price))
-              FROM bq_order_items oi
-              INNER JOIN bq_products p ON oi.product_id = p.product_id
+              FROM ph_order_items oi
+              INNER JOIN ph_products p ON oi.product_id = p.product_id
               WHERE oi.order_id = t.order_id
             )
             ELSE 0 
@@ -303,8 +303,8 @@ class TransactionRepository {
                COUNT(CASE WHEN t.payment_status = 'paid' AND t.transaction_type = 'order_payment' THEN 1 END)
           ELSE 0 
         END as average_order_value
-      FROM bq_transactions t
-      INNER JOIN bq_orders o ON t.order_id = o.order_id`);
+      FROM ph_transactions t
+      INNER JOIN ph_orders o ON t.order_id = o.order_id`);
 
     return res.rows[0];
   }

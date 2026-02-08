@@ -1,7 +1,8 @@
 CREATE TYPE product_status_enum AS ENUM ('available', 'out_of_stock', 'unavailable', 'deleted');
 
-CREATE TABLE IF NOT EXISTS bq_products (
+CREATE TABLE IF NOT EXISTS ph_products (
   product_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  business_id UUID FK REFERENCES ph_businesses(business_id)
   name VARCHAR(255) NOT NULL,
   slug TEXT NOT NULL UNIQUE,
   description TEXT,
@@ -13,8 +14,8 @@ CREATE TABLE IF NOT EXISTS bq_products (
   discount_amount NUMERIC(10,2) DEFAULT 0,
   status product_status_enum NOT NULL,
   is_featured BOOLEAN DEFAULT FALSE,
-  category_id UUID REFERENCES bq_categories(category_id) ON DELETE SET NULL,
-  sub_category_id UUID REFERENCES bq_subcategories(sub_category_id) ON DELETE SET NULL,
+  category_id UUID REFERENCES ph_categories(category_id) ON DELETE SET NULL,
+  sub_category_id UUID REFERENCES ph_subcategories(sub_category_id) ON DELETE SET NULL,
   images JSONB DEFAULT '[]',
   materials TEXT,
   available_sizes JSONB DEFAULT '[]',

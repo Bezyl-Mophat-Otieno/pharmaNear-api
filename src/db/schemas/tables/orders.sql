@@ -4,7 +4,7 @@ CREATE TYPE payment_status_enum AS ENUM ('pending', 'paid', 'failed', 'refunded'
 CREATE TYPE method_of_payment_enum AS ENUM ('mpesa', 'bank_transfer', 'cash_on_delivery', 'cash');
 
 -- Orders table
-CREATE TABLE IF NOT EXISTS bq_orders (
+CREATE TABLE IF NOT EXISTS ph_orders (
   order_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   customer_fullname VARCHAR(100) NOT NULL,
   customer_email VARCHAR(100) NOT NULL,
@@ -23,10 +23,10 @@ CREATE TABLE IF NOT EXISTS bq_orders (
 );
 
 -- Order items
-CREATE TABLE IF NOT EXISTS bq_order_items (
+CREATE TABLE IF NOT EXISTS ph_order_items (
   order_item_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  order_id UUID NOT NULL REFERENCES bq_orders(order_id) ON DELETE CASCADE,
-  product_id UUID NOT NULL REFERENCES bq_products(product_id),
+  order_id UUID NOT NULL REFERENCES ph_orders(order_id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES ph_products(product_id),
   quantity INTEGER NOT NULL,
   unit_price NUMERIC(10, 2) NOT NULL,
   subtotal NUMERIC(10, 2) NOT NULL

@@ -3,7 +3,7 @@ const db = require("..");
 class CategoryRepository {
   async create({ name, description }) {
     const res = await db.query(
-      `INSERT INTO bq_categories (name, description)
+      `INSERT INTO ph_categories (name, description)
        VALUES ($1, $2) RETURNING *`,
       [name, description]
     );
@@ -32,8 +32,8 @@ class CategoryRepository {
         ) FILTER (WHERE s.sub_category_id IS NOT NULL), 
         '[]'
       ) AS subcategories
-    FROM bq_categories c
-    LEFT JOIN bq_subcategories s 
+    FROM ph_categories c
+    LEFT JOIN ph_subcategories s 
       ON s.category_id = c.category_id
     GROUP BY c.category_id, c.name, c.description, c.created_at, c.updated_at
     ORDER BY c.category_id;
@@ -44,18 +44,18 @@ class CategoryRepository {
   }
 
   async findById(id) {
-    const res = await db.query("SELECT * FROM bq_categories WHERE category_id = $1", [id]);
+    const res = await db.query("SELECT * FROM ph_categories WHERE category_id = $1", [id]);
     return res.rows[0];
   }
 
   async update(id, { name, description }) {
     const res = await db.query(
-      `UPDATE bq_categories SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP
+      `UPDATE ph_categories SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP
        WHERE category_id = $3 RETURNING *`,
       [name, description, id]
     );
     const subCategories = await db.query(
-      `SELECT * FROM bq_subcategories WHERE category_id = $1 ORDER BY name`,
+      `SELECT * FROM ph_subcategories WHERE category_id = $1 ORDER BY name`,
       [id]
     );
     const updatedCategory = res.rows[0];
@@ -63,7 +63,7 @@ class CategoryRepository {
   }
 
   async delete(id) {
-    await db.query("DELETE FROM bq_categories WHERE category_id = $1", [id]);
+    await db.query("DELETE FROM ph_categories WHERE category_id = $1", [id]);
   }
 }
 
