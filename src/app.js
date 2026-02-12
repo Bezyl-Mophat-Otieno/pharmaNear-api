@@ -12,6 +12,7 @@ const orderRoutes = require("./routes/order-routes");
 const stockRoutes = require("./routes/stock-routes");
 const uploadRoutes = require("./routes/upload-routes");
 const transactionRoutes = require("./routes/transaction-routes");
+const sellersRoutes = require("./routes/seller-routes");
 const cookieParser = require("cookie-parser");
 const app = express();
 
@@ -57,6 +58,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/stock", stockRoutes);
 app.use("/api/uploads",  uploadRoutes )
 app.use("/api/transactions", transactionRoutes);
+app.use("/api/sellers", sellersRoutes);
 
 
 

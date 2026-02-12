@@ -5,7 +5,7 @@ const { authenticate } = require("../middleware/auth");
 
 /* ------------------------------------------------------------------
   UPLOAD BUSINESS DOCUMENT
-  - Tenant uploads their business documents (license, permit, etc.)
+  - seller uploads their business documents (license, permit, etc.)
 ------------------------------------------------------------------ */
 router.post("/:businessId", authenticate, async (req, res, next) => {
   try {
@@ -30,7 +30,7 @@ router.post("/:businessId", authenticate, async (req, res, next) => {
 
 /* ------------------------------------------------------------------
   LIST ALL DOCUMENTS FOR A BUSINESS
-  - Tenant sees own documents
+  - seller sees own documents
   - Admin can see all documents
 ------------------------------------------------------------------ */
 router.get("/:businessId", authenticate, async (req, res, next) => {
@@ -65,7 +65,7 @@ router.get("/:businessId/:docId", authenticate, async (req, res, next) => {
 
 /* ------------------------------------------------------------------
   DELETE DOCUMENT
-  - Tenant deletes own document
+  - seller deletes own document
   - Admin can delete any document
 ------------------------------------------------------------------ */
 router.delete("/:businessId/:docId", authenticate, async (req, res, next) => {

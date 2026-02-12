@@ -1,8 +1,8 @@
-CREATE TYPE product_status_enum AS ENUM ('available', 'out_of_stock', 'unavailable', 'deleted');
+CREATE TYPE ph_product_status_enum AS ENUM ('available', 'out_of_stock', 'unavailable', 'deleted');
 
 CREATE TABLE IF NOT EXISTS ph_products (
   product_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  business_id UUID FK REFERENCES ph_businesses(business_id)
+  business_id UUID REFERENCES ph_sellers(business_id),
   name VARCHAR(255) NOT NULL,
   slug TEXT NOT NULL UNIQUE,
   description TEXT,

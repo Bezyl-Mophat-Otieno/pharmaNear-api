@@ -15,11 +15,11 @@ class BusinessRepository {
   `;
 
   /* ------------------------------------------------------------------
-     CREATE BUSINESS (Tenant onboarding)
+     CREATE BUSINESS (seller onboarding)
   ------------------------------------------------------------------ */
   async create(business) {
     const query = `
-      INSERT INTO ph_businesses (
+      INSERT INTO ph_sellers (
         owner_user_id,
         business_name,
         address,
@@ -44,27 +44,14 @@ class BusinessRepository {
     return res.rows[0];
   }
 
-  /* ------------------------------------------------------------------
-     FIND BUSINESS BY ID
-  ------------------------------------------------------------------ */
-  async findById(businessId) {
-    const res = await db.query(
-      `SELECT ${this.columnNames}
-       FROM ph_businesses b
-       WHERE b.business_id = $1`,
-      [businessId]
-    );
-
-    return res.rows[0] || null;
-  }
 
   /* ------------------------------------------------------------------
-     FIND BUSINESS BY OWNER (Tenant dashboard)
+     FIND BUSINESS BY OWNER (seller dashboard)
   ------------------------------------------------------------------ */
   async findByOwner(userId) {
     const res = await db.query(
       `SELECT ${this.columnNames}
-       FROM ph_businesses b
+       FROM ph_sellers b
        WHERE b.owner_user_id = $1
        ORDER BY b.created_at DESC`,
       [userId]
@@ -74,7 +61,7 @@ class BusinessRepository {
   }
 
   /* ------------------------------------------------------------------
-     ADMIN: LIST BUSINESSES WITH FILTERS + PAGINATION
+     ADMIN: LIST sellers WITH FILTERS + PAGINATION
   ------------------------------------------------------------------ */
   async findAll({ status, page = 1, limit = 20 }) {
     const offset = (page - 1) * limit;
@@ -93,7 +80,7 @@ class BusinessRepository {
 
     const query = `
       SELECT ${this.columnNames}
-      FROM ph_businesses b
+      FROM ph_sellers b
       ${whereClause}
       ORDER BY b.created_at DESC
       LIMIT $${i++} OFFSET $${i};
@@ -116,7 +103,7 @@ class BusinessRepository {
         COUNT(*) FILTER (WHERE status = 'rejected') AS rejected,
         COUNT(*) FILTER (WHERE status = 'suspended') AS suspended,
         COUNT(*) AS total
-      FROM ph_businesses;
+      FROM ph_sellers;
     `);
 
     return res.rows[0];
@@ -139,7 +126,7 @@ class BusinessRepository {
     values.push(businessId);
 
     const query = `
-      UPDATE ph_businesses
+      UPDATE ph_sellers
       SET ${fields.join(", ")},
           updated_at = CURRENT_TIMESTAMP
       WHERE business_id = $${i}
@@ -156,7 +143,7 @@ class BusinessRepository {
   async approve(businessId) {
     const res = await db.query(
       `
-      UPDATE ph_businesses
+      UPDATE ph_sellers
       SET status = 'approved',
           updated_at = CURRENT_TIMESTAMP
       WHERE business_id = $1
@@ -174,7 +161,7 @@ class BusinessRepository {
   async reject(businessId) {
     const res = await db.query(
       `
-      UPDATE ph_businesses
+      UPDATE ph_sellers
       SET status = 'rejected',
           updated_at = CURRENT_TIMESTAMP
       WHERE business_id = $1
@@ -191,7 +178,7 @@ class BusinessRepository {
   ------------------------------------------------------------------ */
   async delete(businessId) {
     await db.query(
-      `DELETE FROM ph_businesses WHERE business_id = $1`,
+      `DELETE FROM ph_sellers WHERE business_id = $1`,
       [businessId]
     );
   }

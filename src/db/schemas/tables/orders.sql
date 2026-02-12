@@ -1,7 +1,7 @@
 -- Enum for order status
-CREATE TYPE order_status_enum AS ENUM ('pending', 'processing', 'confirmed','shipped', 'delivered', 'cancelled', 'completed');
-CREATE TYPE payment_status_enum AS ENUM ('pending', 'paid', 'failed', 'refunded');
-CREATE TYPE method_of_payment_enum AS ENUM ('mpesa', 'bank_transfer', 'cash_on_delivery', 'cash');
+CREATE TYPE ph_order_status_enum AS ENUM ('pending', 'processing', 'confirmed','shipped', 'delivered', 'cancelled', 'completed');
+CREATE TYPE ph_payment_status_enum AS ENUM ('pending', 'paid', 'failed', 'refunded');
+CREATE TYPE ph_method_of_payment_enum AS ENUM ('mpesa', 'bank_transfer', 'cash_on_delivery', 'cash');
 
 -- Orders table
 CREATE TABLE IF NOT EXISTS ph_orders (

@@ -10,6 +10,7 @@ function generateRefreshToken(user) {
 }
 
 function verifyToken(token) {
+  if (!token) throw new Error("Access Token not provided");
   return jwt.verify(token, JWT_SECRET);
 }
 

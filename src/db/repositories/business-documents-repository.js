@@ -1,5 +1,5 @@
 const db = require("..");
-const { CloudinaryService } = require("../services/cloudinary.service");
+const { CloudinaryService } = require("../../utils/cloudinary");
 
 class BusinessDocumentRepository {
   columnNames = `
@@ -33,7 +33,7 @@ class BusinessDocumentRepository {
       INSERT INTO ph_business_documents (
         business_id,
         document_type,
-        file_name,
+      file_name,
         file_url,
         mime_type,
         file_size,
@@ -127,7 +127,7 @@ class BusinessDocumentRepository {
   }
 
   /* ------------------------------------------------------------------
-     DELETE DOCUMENT (Tenant – usually rejected ones)
+     DELETE DOCUMENT (seller – usually rejected ones)
   ------------------------------------------------------------------ */
   async deleteDocument(documentId) {
     // 1. Get document

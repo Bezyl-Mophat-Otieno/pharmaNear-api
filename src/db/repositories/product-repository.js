@@ -67,7 +67,7 @@ class ProductRepository {
     const res = await db.query(`SELECT ${this.columnNames} FROM ph_products p 
                                 INNER JOIN ph_categories c ON c.category_id = p.category_id
                                 INNER JOIN ph_subcategories s ON s.sub_category_id = p.sub_category_id
-                                INNER JOIN ph_businesses b ON b.business_id = p.business_id
+                                INNER JOIN ph_sellers b ON b.business_id = p.business_id
                                 WHERE p.status <> 'deleted'
                                 ORDER BY p.created_at DESC LIMIT $1 OFFSET $2`, [limit, offset]);
     return res.rows;
@@ -78,7 +78,7 @@ class ProductRepository {
     `SELECT ${this.columnNames} FROM ph_products p 
                                 INNER JOIN ph_categories c ON c.category_id = p.category_id
                                 INNER JOIN ph_subcategories s ON s.sub_category_id = p.sub_category_id
-                                INNER JOIN ph_businesses b ON b.business_id = p.business_id
+                                INNER JOIN ph_sellers b ON b.business_id = p.business_id
                                 WHERE p.product_id = $1 AND p.status <> 'deleted'`,
     [id]
   );
@@ -170,7 +170,7 @@ class ProductRepository {
       ${this.baseSelect}
       ${distanceSelect}
     FROM ph_products p
-    INNER JOIN ph_businesses b ON b.business_id = p.business_id
+    INNER JOIN ph_sellers b ON b.business_id = p.business_id
     WHERE
       p.status = 'active'
       AND b.status = 'active'
@@ -205,7 +205,7 @@ async findByIdWithBusiness(productId, userLat, userLng) {
       ${this.baseSelect}
       ${distanceSelect}
     FROM ph_products p
-    INNER JOIN ph_businesses b ON b.business_id = p.business_id
+    INNER JOIN ph_sellers b ON b.business_id = p.business_id
     WHERE p.product_id = $1 AND p.status = 'active';
   `;
 

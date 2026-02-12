@@ -7,6 +7,7 @@ const { authenticate } = require("../middleware/auth");
 const { hashPassword } = require("../utils/bcrypt");
 const UserRepository = require("../db/repositories/user-repository");
 const { RoleEnum } = require("../db/enums");
+const { EmailService } = require("../services/email-service");
 
 const router = express.Router();
 
@@ -116,6 +117,11 @@ router.post('/admin/login', async(req, res, next)=>{
 
 })
 
+const  sendEmailVerification = async (user)=> {
+  const accessToken = jwt.generateAccessToken(user)
+  return await EmailService.sendVerificationEmail(user, accessToken)
+}
+
 router.post('/register', async(req, res, next)=>{
   const details = req.body
   const role = req.query.role || RoleEnum.customer
@@ -135,11 +141,63 @@ router.post('/register', async(req, res, next)=>{
   const hashedPassword = await hashPassword(password);
   try {
     const newUser = await UserRepository.createUser({ name, email, password: hashedPassword, role: role });
-    res.status(201).json({ success: true, message: "User registered successfully", data: newUser });
+    // Send verification email to the user 
+    // When it fails let the admin know by setting up monitoring and alerts.
+    // For now we will ignore when email verification fails
+    const sent = await sendEmailVerification(newUser)
+    res.status(201).json({ success: true, message: `User registered successfully. Email verification link ${sent ? "sent" : "not sent"} `, data: newUser });
   } catch (err) {
     next(err);
   }
 })
+
+router.post('/verify-email', async (req, res, next)=>{
+  const { email, token } = req.body;
+  const existingUser = await UserRepository.findByEmail(email);
+  if (!existingUser) {
+    return res.status(404).json({ success: false, message: "User not found" });
+  }
+  if(existingUser.status === 'active') return res.status(400).json({ success: false, message: "Email already verified" });
+
+  try {
+    const decoded = jwt.verifyToken(token)
+    if(decoded.email !== email) return res.status(400).json({ success: false, message: "Invalid token" });
+
+    const updatedUser = await UserRepository.reactivateUser(existingUser.user_id);
+    if(updatedUser){
+      res.status(200).json({ success: true, message: "Email verified successfully" });
+    }else{
+      res.status(500).json({ success: false, message: "Failed to verify email" });
+    }
+  } catch (err) {
+    log("Error verifying email", LOG_LEVELS.ERROR, err);
+    next(err);
+  }
+})
+
+ router.post('/resend-verification', async(req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    const [user] = await UserRepository.findByEmail(email);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    if(user.status === 'active') return res.status(400).json({ success: false, message: "Email already verified" });
+
+    const sent = await  sendEmailVerification(user)
+
+    return sent 
+      ? res.status(200).json({ success: true, message: "Verification link sent successfully" }) 
+      : res.status(500).json({ success: false, message: "Failed to send verification link" });
+  } catch (err) {
+    next(err);
+  }
+ })
 
  router.get('/me', authenticate, async(req, res, next) => {
   try {

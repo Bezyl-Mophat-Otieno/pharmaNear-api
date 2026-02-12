@@ -1,7 +1,6 @@
 CREATE TYPE business_document_type_enum AS ENUM (
     'ppb_license',
     'business_permit',
-    'other'
 );
 
 
@@ -16,7 +15,7 @@ CREATE TABLE ph_business_documents (
     document_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     business_id UUID NOT NULL
-        REFERENCES ph_businesses(business_id)
+        REFERENCES ph_sellers(business_id)
         ON DELETE CASCADE,
 
     document_type business_document_type_enum NOT NULL,

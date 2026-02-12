@@ -16,12 +16,30 @@ class UserRepository {
     }
   }
 
+    async findById(userId) {
+    try {
+      const result = await db.query("SELECT * FROM ph_users WHERE user_id = $1", [userId]);
+      return result.rows[0] || null;
+    } catch (err) {
+      log(LOG_LEVELS.ERROR, "UserRepository.findById failed", {
+        error: err.message,
+        stack: err.stack,
+      });
+      throw err;
+    }
+  }
+
   async createUser({ name, email, password, role= "customer" }) {
     try {
+      console.log(
+        name, email, password, role
+      )
+      const status = role !== 'seller' ? 'active': 'pending'
       const result = await db.query(
-        "INSERT INTO ph_users (name, email, password, role, status) VALUES ($1, $2, $3, $4, 'active') RETURNING *",
-        [name, email, password, role]
+        `INSERT INTO ph_users (name, email, password, role, status) VALUES ($1, $2, $3, $4, $5 ) RETURNING *`,
+        [name, email, password, role, status]
       );
+
       return result.rows[0];
     } catch (err) {
       log(LOG_LEVELS.ERROR, "UserRepository.createUser failed", {
