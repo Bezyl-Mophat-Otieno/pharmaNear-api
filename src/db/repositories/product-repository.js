@@ -34,7 +34,7 @@ class ProductRepository {
         business_id, name, slug, description, stock, low_stock_threshold, discount_amount,
         status, is_featured, category_id,sub_category_id, images,
         materials, available_sizes, care_instructions, buying_price, selling_price
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
       RETURNING *;
     `;
 
@@ -62,14 +62,22 @@ class ProductRepository {
     return res.rows[0];
   }
 
-  async findAll(page, limit) {
+  async findAll(page, limit, businessId) {
     const offset = (page - 1) * limit;
-    const res = await db.query(`SELECT ${this.columnNames} FROM ph_products p 
+    let query = `SELECT ${this.columnNames} FROM ph_products p 
                                 INNER JOIN ph_categories c ON c.category_id = p.category_id
                                 INNER JOIN ph_subcategories s ON s.sub_category_id = p.sub_category_id
                                 INNER JOIN ph_sellers b ON b.business_id = p.business_id
                                 WHERE p.status <> 'deleted'
-                                ORDER BY p.created_at DESC LIMIT $1 OFFSET $2`, [limit, offset]);
+                `
+    const params = []
+    if(businessId){
+      query += ` AND p.business_id = $1 `;
+      params.push(businessId)
+    }
+
+    query += `ORDER BY p.created_at DESC`
+    const res = await db.query(query, params);
     return res.rows;
   }
 

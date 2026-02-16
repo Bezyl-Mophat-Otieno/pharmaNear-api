@@ -21,8 +21,13 @@ router.get("/", paginate, async (req, res, next) => {
     const { page, limit } = req.pagination;
     const {userId} = req.query
     const [business] = await businessRepository.findByOwner(userId)
-    if(!business) return res.status(404).json({success: false, message: "Business not found!"})
-    const products = await productRepo.findAll(page, limit);
+    let products = [];
+    if(!business) {
+      products = await productRepo.findAll(page, limit)
+    } else {
+        products = await productRepo.findAll(page, limit, business.business_id)
+    } 
+    if(!products.length > 0) return res.status(404).json({success: false, message: "No products found!"})
     res.status(200).json({success: true, message: "Products fetched successfully", data:products });
   } catch (err) {
     next(err);
@@ -31,10 +36,10 @@ router.get("/", paginate, async (req, res, next) => {
 router.get("/admin", authenticate ,paginate, async (req, res, next) => {
   try {
     const { page, limit } = req.pagination;
-    const {userId} = req.user.user_id
-    const business = await businessRepository.findByOwner(userId)
+    const userId = req.user.user_id
+    const [business] = await businessRepository.findByOwner(userId)
     if(!business) return res.status(404).json({success: false, message: "Business not found!"})
-    const products = await productRepo.findAll(page, limit);
+    const products = await productRepo.findAll(page, limit, business.business_id);
     res.status(200).json({success: true, message: "Products fetched successfully", data:products });
   } catch (err) {
     next(err);
