@@ -3,10 +3,13 @@ const router = express.Router();
 const productRepo = require("../db/repositories/product-repository");
 const paginate = require("../middleware/pagination");
 const { authenticate, requireAdmin } = require("../middleware/auth");
+const businessRepository = require("../db/repositories/business-repository");
 
 router.post("/", authenticate, requireAdmin , async (req, res, next) => {
   try {
-    const created = await productRepo.create(req.body);
+    const [business] = await businessRepository.findByOwner(req.user.user_id);
+    if(!business) return res.status(404).json({success: false, message: "Business not found!"})
+    const created = await productRepo.create(req.body, business.business_id);
     res.status(201).json(created);
   } catch (err) {
     next(err);
@@ -16,12 +19,28 @@ router.post("/", authenticate, requireAdmin , async (req, res, next) => {
 router.get("/", paginate, async (req, res, next) => {
   try {
     const { page, limit } = req.pagination;
+    const {userId} = req.query
+    const [business] = await businessRepository.findByOwner(userId)
+    if(!business) return res.status(404).json({success: false, message: "Business not found!"})
     const products = await productRepo.findAll(page, limit);
-    res.status(200).json({success: true, message: " Products fetched successfully", data:products });
+    res.status(200).json({success: true, message: "Products fetched successfully", data:products });
   } catch (err) {
     next(err);
   }
 });
+router.get("/admin", authenticate ,paginate, async (req, res, next) => {
+  try {
+    const { page, limit } = req.pagination;
+    const {userId} = req.user.user_id
+    const business = await businessRepository.findByOwner(userId)
+    if(!business) return res.status(404).json({success: false, message: "Business not found!"})
+    const products = await productRepo.findAll(page, limit);
+    res.status(200).json({success: true, message: "Products fetched successfully", data:products });
+  } catch (err) {
+    next(err);
+  }
+});
+
 
 router.get("/:id", async (req, res, next) => {
   try {

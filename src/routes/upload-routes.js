@@ -30,6 +30,7 @@ router.post("/images", authenticate, requireAdmin, upload.single("file"), async 
       data: result,
     });
   } catch (err) {
+    console.log(err)
     next(err);
   }
 });

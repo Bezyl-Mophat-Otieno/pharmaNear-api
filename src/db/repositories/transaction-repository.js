@@ -89,16 +89,17 @@ class TransactionRepository {
     }
   }
 
-  async getAllTransactions({ status, transactionType, methodOfPayment, limit = 20, offset = 0 }) {
+  async getAllTransactions({businessId, status, transactionType, methodOfPayment, limit = 20, offset = 0 }) {
     let query = `
       SELECT ${this.columnNames}
       FROM ph_transactions t
+      INNER JOIN ph_orders o ON o.order_id = t.order_id
       LEFT JOIN ph_transaction_details td ON t.transaction_details_id = td.transaction_details_id
       LEFT JOIN ph_users u ON t.reconciled_by = u.user_id
-      WHERE 1=1
+      WHERE o.business_id=$1
     `;
-    const params = [];
-    let paramCount = 0;
+    const params = [businessId];
+    let paramCount = 1;
 
     if (status) {
       paramCount++;
@@ -270,7 +271,7 @@ class TransactionRepository {
     }
   }
 
-  async getTransactionStats() {
+  async getTransactionStats(businessId) {
     const res = await db.query(`
       SELECT 
         COUNT(*) as total_transactions,
@@ -304,7 +305,9 @@ class TransactionRepository {
           ELSE 0 
         END as average_order_value
       FROM ph_transactions t
-      INNER JOIN ph_orders o ON t.order_id = o.order_id`);
+      INNER JOIN ph_orders o ON t.order_id = o.order_id
+      WHERE o.business_id = $1
+      `, [businessId]);
 
     return res.rows[0];
   }

@@ -5,7 +5,7 @@ class ProductRepository {
   columnNames = `
       p.product_id,
       p.name,
-      b.bussiness_name,
+      b.business_name,
       p.slug,
       p.description,
       p.stock,
@@ -27,7 +27,7 @@ class ProductRepository {
       p.created_at,
       p.updated_at
   `
-  async create(product) {
+  async create(product, businessId) {
     const slug = generateSlug(product.name);
     const query = `
       INSERT INTO ph_products (
@@ -39,7 +39,7 @@ class ProductRepository {
     `;
 
     const values = [
-      product.business_id,
+      businessId,
       product.name,
       slug,
       product.description,

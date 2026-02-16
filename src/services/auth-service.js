@@ -14,7 +14,7 @@ class AuthService  {
   }
   async authenticateAdmin(email, userPassword) {
     const user = await UserRepository.findByEmail(email);
-    if (!user || ![RoleEnum.admin, RoleEnum.superadmin].includes(user.role)) {
+    if (!user || ![RoleEnum.admin, RoleEnum.seller].includes(user.role)) {
       return null;
     }
 

@@ -4,21 +4,23 @@ const OrdersRepository = require("../db/repositories/order-repository");
 const ApiError = require("../utils/ApiError");
 const { authenticate, requireAdmin } = require("../middleware/auth");
 const paginate = require("../middleware/pagination");
+const BusinessRepository = require("../db/repositories/business-repository");
 
 router.post("/", async (req, res, next) => {
   try {
-    const { customerInfo, items, paymentMethod } = req.body;
+    const { customerInfo, items, paymentMethod, businessId } = req.body;
 
     
     const { name,email, phone, address, notes } = customerInfo;
 
-    if (!email || !name || !phone || !address || !items?.length) {
+    if (!email || !name || !phone || !address || !items?.length || !businessId) {
       throw ApiError.badRequest("Invalid order payload");
     }
 
 
 
     const order = await OrdersRepository.createOrder({
+      business_id: businessId,
       customer_fullname: name,
       customer_email: email,
       customer_phone: phone,
@@ -79,8 +81,11 @@ router.get("/", authenticate, requireAdmin, paginate, async (req, res, next) => 
   try {
     const { status } = req.query;
     const { limit, offset } = req.pagination;
+    const [business] = await BusinessRepository.findByOwner(req.user.user_id)
+    if(!business) res.status(404).json({success:false,message:"Business not found"})
     const orders = await OrdersRepository.getAllOrders({
       status,
+      businessId: business.business_id,
       limit: limit ? parseInt(limit, 10) : 20,
       offset: offset ? parseInt(offset, 10) : 0,
     });

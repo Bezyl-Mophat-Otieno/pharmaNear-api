@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const TransactionRepository = require("../db/repositories/transaction-repository");
+const BusinessRepository = require("../db/repositories/business-repository");
+
 const ApiError = require("../utils/ApiError");
 const { authenticate, requireAdmin } = require("../middleware/auth");
 const paginate = require("../middleware/pagination");
@@ -54,8 +56,11 @@ router.get("/", authenticate, requireAdmin, paginate, async (req, res, next) => 
   try {
     const { status, transactionType, methodOfPayment } = req.query;
     const { limit, offset } = req.pagination;
-
+    const [business] = await BusinessRepository.findByOwner(req.user.user_id)
+    if(!business) res.status(404).json({success:false, message:"Business not found"})
+      
     const transactions = await TransactionRepository.getAllTransactions({
+      businessId: business.business_id,
       status,
       transactionType,
       methodOfPayment,
@@ -189,7 +194,9 @@ router.post("/:id/refund", authenticate, requireAdmin, async (req, res, next) =>
 // Get transaction statistics
 router.get("/stats/overview", authenticate, requireAdmin, async (req, res, next) => {
   try {
-    const stats = await TransactionRepository.getTransactionStats();
+    const [business] = await BusinessRepository.findByOwner(req.user.user_id)
+    if(!business) res.status(404).json({success:false, message:"Business not found"})
+    const stats = await TransactionRepository.getTransactionStats(business.business_id);
 
     res.status(200).json({
       success: true,

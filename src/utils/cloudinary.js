@@ -21,6 +21,7 @@ export class CloudinaryService {
       }
 
       const result = await cloudinary.uploader.upload(file, uploadOptions)
+      console.log(result)
 
       return {
         public_id: result.public_id,

@@ -6,6 +6,7 @@ CREATE TYPE ph_method_of_payment_enum AS ENUM ('mpesa', 'bank_transfer', 'cash_o
 -- Orders table
 CREATE TABLE IF NOT EXISTS ph_orders (
   order_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  business_id UUID REFERENCES ph_sellers(business_id),
   customer_fullname VARCHAR(100) NOT NULL,
   customer_email VARCHAR(100) NOT NULL,
   customer_phone VARCHAR(20),

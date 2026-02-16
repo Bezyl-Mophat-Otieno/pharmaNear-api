@@ -39,7 +39,7 @@ class OrdersRepository {
         'createdAt', o.placed_at,
         'updatedAt', o.updated_at
       ) AS order`
-  async createOrder({ customer_fullname, customer_email, customer_phone, shipping_address, method_of_payment ,items = [], notes }) {
+  async createOrder({ business_id, customer_fullname, customer_email, customer_phone, shipping_address, method_of_payment ,items = [], notes }) {
     try {
       await db.query("BEGIN");
       const orderNumber = generateOrderNumber();
@@ -48,12 +48,13 @@ class OrdersRepository {
       }, 0);
 
       const insertOrderQuery = `
-        INSERT INTO ph_orders (customer_fullname, customer_email, customer_phone, method_of_payment, order_number, total_amount, shipping_address, notes)
+        INSERT INTO ph_orders (business_id, customer_fullname, customer_email, customer_phone, method_of_payment, order_number, total_amount, shipping_address, notes)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING *;
       `;
 
       const orderRes = await db.query(insertOrderQuery, [
+        business_id,
         customer_fullname,
         customer_email,
         customer_phone,
@@ -118,18 +119,19 @@ class OrdersRepository {
     return orderRes.rows.map(o=>o.order);
   }
 
-  async getAllOrders({ status, limit = 20, offset = 0 }) {
+  async getAllOrders({ status, businessId, limit = 20, offset = 0 }) {
     let query = `SELECT ${this.columnNames}
       FROM ph_orders o
       INNER JOIN ph_order_items oi
         ON oi.order_id = o.order_id
       INNER JOIN ph_products p
         ON p.product_id = oi.product_id
+        WHERE o.business_id = $1
       `;
-    const params = [];
+    const params = [businessId];
 
     if (status) {
-      query += `WHERE o.status = $1`;
+      query += `AND o.status = $1`;
       params.push(status);
     }
 

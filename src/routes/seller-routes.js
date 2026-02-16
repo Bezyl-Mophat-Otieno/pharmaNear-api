@@ -83,7 +83,12 @@ router.post("/onboard", async (req, res, next) => {
 ------------------------------------------------------------------ */
 router.post("/", async (req, res, next) => {
   try {
-    const {userId} = req.body;
+    const userId = req.query.userId
+    const {businessName, address, latitude,longitude,businessType} = req.body;
+    if(!userId || !businessName || !address || !latitude || !longitude )
+    {
+      throw ApiError.badRequest("Missing required fields: userId, businessName, address, latitude,  longitude");
+    }
 
     // Validate user is a seller
     const user = await userRepo.findById(userId);
@@ -99,11 +104,11 @@ router.post("/", async (req, res, next) => {
 
     const businessData = {
       owner_user_id: userId,
-      business_name: req.body.businessName,
-      address: req.body.address,
-      business_type: req.body.businessType || null,
-      latitude: req.body.latitude || null,
-      longitude: req.body.longitude || null
+      business_name: businessName,
+      address: address,
+      business_type: businessType || null,
+      latitude: latitude || null,
+      longitude: longitude || null
     };
 
     const created = await businessRepo.create(businessData);
@@ -126,6 +131,9 @@ router.post("/upload/documents", upload.single("file"), async (req, res, next) =
     const documentType  = req.query.type;
     const userId  = req.query.userId;
 
+    if (!userId) {
+      throw ApiError.badRequest("Missing required query parameters: userId");
+    }
     if (!req.file) {
       throw ApiError.badRequest("No file uploaded");
     }
@@ -195,7 +203,7 @@ router.get("/my-business", authenticate, async (req, res, next) => {
 /* ------------------------------------------------------------------
   ADMIN: GET ALL BUSINESSES (with filters & pagination)
 ------------------------------------------------------------------ */
-router.get("/admin/sellers", authenticate, requireAdmin, paginate, async (req, res, next) => {
+router.get("/admin", authenticate, requireAdmin, paginate, async (req, res, next) => {
   try {
     const { page, limit } = req.pagination;
     const { status, search, dateFrom, dateTo } = req.query;
@@ -244,7 +252,7 @@ router.get("/admin/sellers", authenticate, requireAdmin, paginate, async (req, r
 /* ------------------------------------------------------------------
   ADMIN: GET BUSINESS STATS
 ------------------------------------------------------------------ */
-router.get("/admin/sellers/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/admin/stats", authenticate, requireAdmin, async (req, res, next) => {
   try {
     const stats = await businessRepo.getStats();
 
@@ -265,7 +273,7 @@ router.get("/admin/sellers/stats", authenticate, requireAdmin, async (req, res, 
 /* ------------------------------------------------------------------
   ADMIN: GET SINGLE BUSINESS BY ID (with documents and owner info)
 ------------------------------------------------------------------ */
-router.get("/admin/sellers/:id", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/admin/:id", authenticate, requireAdmin, async (req, res, next) => {
   try {
     const business = await businessRepo.findById(req.params.id);
     
@@ -321,7 +329,7 @@ router.get("/admin/sellers/:id", authenticate, requireAdmin, async (req, res, ne
 /* ------------------------------------------------------------------
   ADMIN: UPDATE BUSINESS
 ------------------------------------------------------------------ */
-router.put("/admin/sellers/:id", authenticate, requireAdmin, async (req, res, next) => {
+router.put("/admin/:id", authenticate, requireAdmin, async (req, res, next) => {
   try {
     const business = await businessRepo.findById(req.params.id);
     
@@ -362,7 +370,7 @@ router.put("/admin/sellers/:id", authenticate, requireAdmin, async (req, res, ne
 /* ------------------------------------------------------------------
   ADMIN: APPROVE BUSINESS
 ------------------------------------------------------------------ */
-router.post("/admin/sellers/:id/approve", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/admin/:id/approve", authenticate, requireAdmin, async (req, res, next) => {
   try {
     const { documentIds } = req.body;
 
@@ -414,7 +422,7 @@ router.post("/admin/sellers/:id/approve", authenticate, requireAdmin, async (req
 /* ------------------------------------------------------------------
   ADMIN: REJECT BUSINESS
 ------------------------------------------------------------------ */
-router.post("/admin/sellers/:id/reject", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/admin/:id/reject", authenticate, requireAdmin, async (req, res, next) => {
   try {
     const { reason, rejectedDocumentIds } = req.body;
 
@@ -473,7 +481,7 @@ router.post("/admin/sellers/:id/reject", authenticate, requireAdmin, async (req,
 /* ------------------------------------------------------------------
   ADMIN: DELETE BUSINESS (hard delete)
 ------------------------------------------------------------------ */
-router.delete("/admin/sellers/:id", authenticate, requireAdmin, async (req, res, next) => {
+router.delete("/admin/:id", authenticate, requireAdmin, async (req, res, next) => {
   try {
     const business = await businessRepo.findById(req.params.id);
     if (!business) {

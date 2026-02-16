@@ -1,7 +1,7 @@
 export const  RoleEnum = {
     customer:"customer",
-    admin:"seller",
-    superadmin:"admin"
+    seller:"seller",
+    admin:"admin"
   };
 
 export const StatusEnum = {
