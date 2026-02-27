@@ -138,7 +138,7 @@ class ProductRepository {
   query,
   userLat,
   userLng,
-  radiusKm = 20,
+  radiusKm = 2000,
   limit = 20,
   offset = 0
 }) {
@@ -175,21 +175,22 @@ class ProductRepository {
 
   const sql = `
     SELECT
-      ${this.baseSelect}
+      ${this.columnNames}
       ${distanceSelect}
     FROM ph_products p
     INNER JOIN ph_sellers b ON b.business_id = p.business_id
+    INNER JOIN ph_categories c ON c.category_id = p.category_id
+    INNER JOIN ph_subcategories s ON s.sub_category_id = p.sub_category_id
     WHERE
-      p.status = 'active'
-      AND b.status = 'active'
+      p.status = 'available'
       AND p.name ILIKE $${i}
       ${distanceWhere}
     ORDER BY ${orderBy}
     LIMIT $${i + 1} OFFSET $${i + 2};
   `;
-
   values.push(`%${query}%`, limit, offset);
-
+  console.log("sql", sql)
+  console.log("values", values)
   const res = await db.query(sql, values);
   return res.rows;
 }
@@ -210,10 +211,12 @@ async findByIdWithBusiness(productId, userLat, userLng) {
 
   const sql = `
     SELECT
-      ${this.baseSelect}
+      ${this.columnNames}
       ${distanceSelect}
     FROM ph_products p
     INNER JOIN ph_sellers b ON b.business_id = p.business_id
+    INNER JOIN ph_categories c ON c.category_id = p.category_id
+    INNER JOIN ph_subcategories s ON s.sub_category_id = p.sub_category_id
     WHERE p.product_id = $1 AND p.status = 'active';
   `;
 

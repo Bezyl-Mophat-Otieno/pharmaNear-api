@@ -47,50 +47,17 @@ router.get("/admin", authenticate ,paginate, async (req, res, next) => {
 });
 
 
-router.get("/:id", async (req, res, next) => {
-  try {
-    const product = await productRepo.findById(req.params.id);
-    if (!product) return res.status(404).json({ error: "Product not found" });
-    res.status(200).json(product);
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.put("/:id", async (req, res, next) => {
-  try {
-    const updated = await productRepo.update(req.params.id, req.body);
-    if (!updated) return res.status(404).json({ error: "Product not found" });
-    res.status(200).json(updated);
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.delete("/:id", async (req, res, next) => {
-  try {
-    await productRepo.delete(req.params.id);
-    res.status(204).send();
-  } catch (err) {
-    next(err);
-  }
-});
-
 /* ------------------------------------------------------------------
-  SEARCH PRODUCTS (Search + optional geo + pagination)
+  SEARCH PRODUCTS (Search + optional geo)
 ------------------------------------------------------------------ */
-router.get("/product-search", paginate, async (req, res, next) => {
+router.get("/search", async (req, res, next) => {
   try {
-    const { page, limit } = req.pagination;
-    const { search, lat, lng, radiusKm } = req.query;
-
+    const { search, latitude, longitude, radiusKm } = req.query;
     const products = await productRepo.searchProducts({
-      page,
-      limit,
-      search,
-      lat: lat ? parseFloat(lat) : null,
-      lng: lng ? parseFloat(lng) : null,
-      radiusKm: radiusKm ? parseFloat(radiusKm) : null
+      query: search,
+      userLat: latitude ? parseFloat(latitude) : null,
+      userLng: longitude ? parseFloat(longitude) : null,
+      radiusKm: radiusKm ? parseFloat(radiusKm) : undefined
     });
 
     res.status(200).json({
@@ -122,6 +89,36 @@ router.get("/location-based/:id", async (req, res, next) => {
       success: true,
       data: product
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+router.get("/:id", async (req, res, next) => {
+  try {
+    const product = await productRepo.findById(req.params.id);
+    if (!product) return res.status(404).json({ error: "Product not found" });
+    res.status(200).json(product);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put("/:id", async (req, res, next) => {
+  try {
+    const updated = await productRepo.update(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: "Product not found" });
+    res.status(200).json(updated);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/:id", async (req, res, next) => {
+  try {
+    await productRepo.delete(req.params.id);
+    res.status(204).send();
   } catch (err) {
     next(err);
   }
