@@ -192,8 +192,6 @@ class ProductRepository {
     LIMIT $${i + 1} OFFSET $${i + 2};
   `;
   values.push(`%${query}%`, limit, offset);
-  console.log("sql", sql)
-  console.log("values", values)
   const res = await db.query(sql, values);
   return res.rows;
 }

@@ -8,32 +8,37 @@ const BusinessRepository = require("../db/repositories/business-repository");
 
 router.post("/", async (req, res, next) => {
   try {
-    const { customerInfo, items, paymentMethod, businessId } = req.body;
+    const { customerInfo, items, paymentMethod } = req.body;
 
     
-    const { name,email, phone, address, notes } = customerInfo;
+    const { name, email, phone, address, notes } = customerInfo;
 
-    if (!email || !name || !phone || !address || !items?.length || !businessId) {
+    if (!email || !name || !phone || !address || !items?.length) {
       throw ApiError.badRequest("Invalid order payload");
     }
 
+    // Group items by business_id
+    const itemsByBusiness = await OrdersRepository.groupItemsByBusiness(items);
 
+    if (Object.keys(itemsByBusiness).length === 0) {
+      throw ApiError.badRequest("No valid products found in cart");
+    }
 
-    const order = await OrdersRepository.createOrder({
-      business_id: businessId,
+    // Create separate orders for each business
+    const orders = await OrdersRepository.createOrdersForMultipleBusinesses({
+      itemsByBusiness,
       customer_fullname: name,
       customer_email: email,
       customer_phone: phone,
       shipping_address: address,
       method_of_payment: paymentMethod,
-      items,
       notes,
     });
 
     res.status(201).json({
       success: true,
-      message: "Order created successfully",
-      data: order,
+      message: `${orders.length} order(s) created successfully`,
+      data: orders,
     });
   } catch (err) {
     next(err);

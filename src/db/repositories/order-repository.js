@@ -6,6 +6,7 @@ class OrdersRepository {
         jsonb_build_object(
         'orderId', o.order_id,
         'orderNumber', o.order_number,
+        'businessId', o.business_id,
         'items', COALESCE(
           jsonb_agg(
             jsonb_build_object(
@@ -39,6 +40,65 @@ class OrdersRepository {
         'createdAt', o.placed_at,
         'updatedAt', o.updated_at
       ) AS order`
+
+  async groupItemsByBusiness(items) {
+    const itemsByBusiness = {};
+
+    for (const item of items) {
+      // Fetch product to get business_id
+      const productRes = await db.query(
+        `SELECT business_id, selling_price FROM ph_products WHERE product_id = $1 AND status <> 'deleted'`,
+        [item.productId]
+      );
+
+      if (productRes.rows.length === 0) {
+        continue; // Skip invalid products
+      }
+
+      const { business_id, selling_price } = productRes.rows[0];
+
+      if (!itemsByBusiness[business_id]) {
+        itemsByBusiness[business_id] = [];
+      }
+
+      itemsByBusiness[business_id].push({
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice || selling_price,
+      });
+    }
+
+    return itemsByBusiness;
+  }
+
+  async createOrdersForMultipleBusinesses({
+    itemsByBusiness,
+    customer_fullname,
+    customer_email,
+    customer_phone,
+    shipping_address,
+    method_of_payment,
+    notes,
+  }) {
+    const orders = [];
+
+    for (const [business_id, items] of Object.entries(itemsByBusiness)) {
+      const order = await this.createOrder({
+        business_id,
+        customer_fullname,
+        customer_email,
+        customer_phone,
+        shipping_address,
+        method_of_payment,
+        items,
+        notes,
+      });
+
+      orders.push(order);
+    }
+
+    return orders;
+  }
   async createOrder({ business_id, customer_fullname, customer_email, customer_phone, shipping_address, method_of_payment ,items = [], notes }) {
     try {
       await db.query("BEGIN");
@@ -49,7 +109,7 @@ class OrdersRepository {
 
       const insertOrderQuery = `
         INSERT INTO ph_orders (business_id, customer_fullname, customer_email, customer_phone, method_of_payment, order_number, total_amount, shipping_address, notes)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *;
       `;
 
