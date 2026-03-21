@@ -66,9 +66,8 @@ class UserRepository {
 
   async updatePassword(userId, newPassword) {
     try {
-      const
-        result = await db.query(
-          "UPDATE ph_users SET password_hash = $1, updated_at = NOW() WHERE id = $2 RETURNING *",
+      const result = await db.query(
+          "UPDATE ph_users SET password = $1, updated_at = NOW() WHERE user_id = $2 RETURNING *",
           [newPassword, userId]
         );
       return result.rows[0];

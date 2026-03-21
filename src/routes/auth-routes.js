@@ -222,6 +222,37 @@ router.post('/verify-email', async (req, res, next)=>{
   }
  })
 
+ router.post('/forgot-password', async(req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    const user = await UserRepository.findByEmail(email);
+    // Always return success to avoid email enumeration
+    if (!user) {
+      return res.status(200).json({ success: true, message: "If that email exists, a reset link has been sent." });
+    }
+
+    if (user.status === 'suspended') {
+      return res.status(403).json({ success: false, message: "Account is suspended. Please contact an administrator." });
+    }
+
+    // Generate a short-lived reset token (1 hour)
+    const resetToken = jwt.generateAccessToken({ user_id: user.user_id, email: user.email, purpose: 'password_reset' });
+    const sent = await EmailService.sendPasswordResetEmail(user.email, user.name, resetToken);
+
+    if (!sent) {
+      return res.status(500).json({ success: false, message: "Failed to send reset email. Please try again." });
+    }
+
+    res.status(200).json({ success: true, message: "If that email exists, a reset link has been sent." });
+  } catch (err) {
+    next(err);
+  }
+ })
+
  router.post('/reset-password', async(req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -240,10 +271,50 @@ router.post('/verify-email', async (req, res, next)=>{
     }
 
     const hashedPassword = await hashPassword(password);
-    const updatedUser = await UserRepository.updatePassword(user.id, hashedPassword);
+    const updatedUser = await UserRepository.updatePassword(user.user_id, hashedPassword);
     
     if (updatedUser) {
       res.status(200).json({ success: true, message: "Password reset successfully" });
+    } else {
+      res.status(500).json({ success: false, message: "Failed to reset password" });
+    }
+  } catch (err) {
+    next(err);
+  }
+ })
+
+ router.post('/reset-password-token', async(req, res, next) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      return res.status(400).json({ success: false, message: "Token and new password are required" });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verifyToken(token);
+    } catch {
+      return res.status(400).json({ success: false, message: "Invalid or expired reset link. Please request a new one." });
+    }
+
+    if (decoded.purpose !== 'password_reset') {
+      return res.status(400).json({ success: false, message: "Invalid reset token." });
+    }
+
+    const user = await UserRepository.findByEmail(decoded.email);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    if (user.status === 'suspended') {
+      return res.status(403).json({ success: false, message: "Account is suspended. Please contact an administrator." });
+    }
+
+    const hashedPassword = await hashPassword(password);
+    const updatedUser = await UserRepository.updatePassword(user.user_id, hashedPassword);
+
+    if (updatedUser) {
+      res.status(200).json({ success: true, message: "Password reset successfully. You can now log in." });
     } else {
       res.status(500).json({ success: false, message: "Failed to reset password" });
     }
