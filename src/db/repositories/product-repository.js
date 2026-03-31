@@ -5,6 +5,7 @@ class ProductRepository {
   columnNames = `
       p.product_id,
       p.name,
+      b.business_id,
       b.business_name,
       b.latitude,
       b.longitude,
@@ -27,6 +28,10 @@ class ProductRepository {
       p.care_instructions,
       p.buying_price,
       p.selling_price,
+      p.requires_prescription,
+      p.dosage_form,
+      p.strength,
+      p.manufacturer,
       p.created_at,
       p.updated_at
   `
@@ -138,63 +143,156 @@ class ProductRepository {
     await db.query(`UPDATE ph_products SET status ='deleted' WHERE product_id = $1`, [id]);
   }
   async searchProducts({
-  query,
-  userLat,
-  userLng,
-  radiusKm = 2000,
-  limit = 20,
-  offset = 0
-}) {
-  const values = [];
-  let i = 1;
+    query,
+    userLat,
+    userLng,
+    radiusKm = 2000,
+    limit = 10,
+    offset = 0,
+    businessId = null,
+    requiresPrescription = null,
+    categoryId = null,
+    manufacturer = null,
+  }) {
+    const values = [];
+    let i = 1;
 
-  let distanceSelect = "";
-  let distanceWhere = "";
-  let orderBy = "p.created_at DESC";
+    let distanceSelect = "";
+    let distanceWhere = "";
 
-  if (userLat && userLng) {
-    distanceSelect = `,
-      ST_Distance(
-        b.location,
-        ST_MakePoint($${i + 1}, $${i})::geography
-      ) / 1000 AS distance_km
+    if (userLat && userLng) {
+      distanceSelect = `,
+        ST_Distance(
+          b.location,
+          ST_MakePoint($${i + 1}, $${i})::geography
+        ) / 1000 AS distance_km
+      `;
+      values.push(userLat, userLng); // $i = lat, $i+1 = lng
+      i += 2;
+
+      distanceWhere = `
+        AND ST_DWithin(
+          b.location,
+          ST_MakePoint($${i - 1}, $${i - 2})::geography,
+          $${i} * 1000
+        )
+      `;
+      values.push(radiusKm);
+      i++;
+    }
+
+    // Primary filter: product name
+    values.push(`%${query}%`);
+    const nameParam = i++;
+
+    // Secondary filters
+    let businessFilter = "";
+    if (businessId) {
+      values.push(businessId);
+      businessFilter = `AND p.business_id = $${i++}`;
+    }
+
+    let prescriptionFilter = "";
+    if (requiresPrescription !== null) {
+      values.push(requiresPrescription);
+      prescriptionFilter = `AND p.requires_prescription = $${i++}`;
+    }
+
+    let categoryFilter = "";
+    if (categoryId) {
+      values.push(categoryId);
+      categoryFilter = `AND p.category_id = $${i++}`;
+    }
+
+    // ORDER: cheapest first, then closest
+    const orderBy = userLat && userLng
+      ? "p.selling_price ASC, distance_km ASC"
+      : "p.selling_price ASC";
+
+    values.push(limit, offset);
+    const limitParam = i++;
+    const offsetParam = i++;
+
+    const sql = `
+      SELECT
+        ${this.columnNames}
+        ${distanceSelect}
+      FROM ph_products p
+      INNER JOIN ph_sellers b ON b.business_id = p.business_id
+      INNER JOIN ph_categories c ON c.category_id = p.category_id
+      INNER JOIN ph_subcategories s ON s.sub_category_id = p.sub_category_id
+      WHERE
+        p.status = 'available'
+        AND p.name ILIKE $${nameParam}
+        ${distanceWhere}
+        ${businessFilter}
+        ${prescriptionFilter}
+        ${categoryFilter}
+      ORDER BY ${orderBy}
+      LIMIT $${limitParam} OFFSET $${offsetParam};
     `;
 
-    values.push(userLat, userLng);
-    i += 2;
-
-    distanceWhere = `
-      AND ST_DWithin(
-        b.location,
-        ST_MakePoint($${i - 1}, $${i - 2})::geography,
-        $${i} * 1000
-      )
-    `;
-    values.push(radiusKm);
-    i++;
-
-    orderBy = "distance_km ASC";
+    const res = await db.query(sql, values);
+    return res.rows;
   }
 
-  const sql = `
-    SELECT
-      ${this.columnNames}
-      ${distanceSelect}
-    FROM ph_products p
-    INNER JOIN ph_sellers b ON b.business_id = p.business_id
-    INNER JOIN ph_categories c ON c.category_id = p.category_id
-    INNER JOIN ph_subcategories s ON s.sub_category_id = p.sub_category_id
-    WHERE
-      p.status = 'available'
-      AND p.name ILIKE $${i}
-      ${distanceWhere}
-    ORDER BY ${orderBy}
-    LIMIT $${i + 1} OFFSET $${i + 2};
-  `;
-  values.push(`%${query}%`, limit, offset);
-  const res = await db.query(sql, values);
-  return res.rows;
-}
+  async countSearch({
+    query,
+    userLat,
+    userLng,
+    radiusKm = 2000,
+    businessId = null,
+    requiresPrescription = null,
+    categoryId = null,
+  }) {
+    const values = [];
+    let i = 1;
+
+    let distanceWhere = "";
+    if (userLat && userLng) {
+      values.push(userLat, userLng);
+      i += 2;
+      distanceWhere = `
+        AND ST_DWithin(
+          b.location,
+          ST_MakePoint($${i - 1}, $${i - 2})::geography,
+          $${i} * 1000
+        )
+      `;
+      values.push(radiusKm);
+      i++;
+    }
+
+    values.push(`%${query}%`);
+    const nameParam = i++;
+
+    let businessFilter = "";
+    if (businessId) { values.push(businessId); businessFilter = `AND p.business_id = $${i++}`; }
+
+    let prescriptionFilter = "";
+    if (requiresPrescription !== null) { values.push(requiresPrescription); prescriptionFilter = `AND p.requires_prescription = $${i++}`; }
+
+    let categoryFilter = "";
+    if (categoryId) { values.push(categoryId); categoryFilter = `AND p.category_id = $${i++}`; }
+
+    const sql = `
+      SELECT COUNT(*) AS total
+      FROM ph_products p
+      INNER JOIN ph_sellers b ON b.business_id = p.business_id
+      INNER JOIN ph_categories c ON c.category_id = p.category_id
+      INNER JOIN ph_subcategories s ON s.sub_category_id = p.sub_category_id
+      WHERE
+        p.status = 'available'
+        AND p.name ILIKE $${nameParam}
+        ${distanceWhere}
+        ${businessFilter}
+        ${prescriptionFilter}
+        ${categoryFilter};
+    `;
+
+    const res = await db.query(sql, values);
+    return parseInt(res.rows[0].total, 10);
+  }
 
 async findByIdWithBusiness(productId, userLat, userLng) {
   const values = [productId];

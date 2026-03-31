@@ -48,22 +48,50 @@ router.get("/admin", authenticate ,paginate, async (req, res, next) => {
 
 
 /* ------------------------------------------------------------------
-  SEARCH PRODUCTS (Search + optional geo)
+  SEARCH PRODUCTS (Search + optional geo + secondary filters)
 ------------------------------------------------------------------ */
 router.get("/search", async (req, res, next) => {
   try {
-    const { search, latitude, longitude, radiusKm } = req.query;
-    const products = await productRepo.searchProducts({
-      query: search,
-      userLat: latitude ? parseFloat(latitude) : null,
+    const {
+      search, latitude, longitude, radiusKm,
+      // secondary filters
+      business_id, requires_prescription, category_id,
+      page = 1, limit = 10,
+    } = req.query;
+
+    const pageNum  = Math.max(1, parseInt(page));
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit)));
+    const offset   = (pageNum - 1) * limitNum;
+
+    const searchParams = {
+      query: search || "",
+      userLat: latitude  ? parseFloat(latitude)  : null,
       userLng: longitude ? parseFloat(longitude) : null,
-      radiusKm: radiusKm ? parseFloat(radiusKm) : undefined
-    });
+      radiusKm: radiusKm ? parseFloat(radiusKm)  : undefined,
+      limit: limitNum,
+      offset,
+      businessId: business_id || null,
+      requiresPrescription: requires_prescription !== undefined
+        ? requires_prescription === "true"
+        : null,
+      categoryId: category_id || null,
+    };
+
+    const [products, total] = await Promise.all([
+      productRepo.searchProducts(searchParams),
+      productRepo.countSearch(searchParams),
+    ]);
 
     res.status(200).json({
       success: true,
       message: "Products fetched successfully",
-      data: products
+      data: products,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
     });
   } catch (err) {
     next(err);

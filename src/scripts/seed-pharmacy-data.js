@@ -8,7 +8,7 @@ require("dotenv").config();
 const { Pool } = require("pg");
 
 const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
-const BUSINESS_ID = "8af6d88a-4a62-45b9-b1fd-db78074a4433";
+const BUSINESS_ID = "c1be17ee-5b4e-4498-b831-01caa789763c";
 
 // ─── DATA ────────────────────────────────────────────────────────────────────
 
@@ -49,7 +49,7 @@ const subCategories = {
   ],
 };
 
-// products: { categoryName, subCategoryName, name, description, buying_price, selling_price, stock, images[] }
+// products: { category, subCategory, name, description, buying_price, selling_price, stock, requires_prescription, dosage_form, strength, manufacturer, images[] }
 const products = [
   // ── Antibiotics ──────────────────────────────────────────────────────────
   {
@@ -57,6 +57,7 @@ const products = [
     name: "Amoxicillin 500mg Capsules",
     description: "Broad-spectrum penicillin antibiotic used to treat bacterial infections including ear, nose, throat, and urinary tract infections.",
     buying_price: 180, selling_price: 495, stock: 120,
+    requires_prescription: true, dosage_form: "Capsule", strength: "500mg", manufacturer: "GSK",
     images: ["https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&q=80"],
   },
   {
@@ -64,6 +65,7 @@ const products = [
     name: "Azithromycin 250mg Tablets",
     description: "Macrolide antibiotic effective against respiratory tract infections, skin infections, and sexually transmitted diseases.",
     buying_price: 320, selling_price: 444, stock: 80,
+    requires_prescription: true, dosage_form: "Tablet", strength: "250mg", manufacturer: "Pfizer",
     images: ["https://images.unsplash.com/photo-1550572017-edd951b55104?w=600&q=80"],
   },
   // ── Antihypertensives ────────────────────────────────────────────────────
@@ -72,6 +74,7 @@ const products = [
     name: "Amlodipine 5mg Tablets",
     description: "Calcium channel blocker used to treat high blood pressure and chest pain (angina).",
     buying_price: 150, selling_price: 303, stock: 200,
+    requires_prescription: true, dosage_form: "Tablet", strength: "5mg", manufacturer: "Novartis",
     images: ["https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=600&q=80"],
   },
   {
@@ -79,6 +82,7 @@ const products = [
     name: "Losartan 50mg Tablets",
     description: "Angiotensin receptor blocker (ARB) for hypertension and kidney protection in diabetic patients.",
     buying_price: 200, selling_price: 550, stock: 150,
+    requires_prescription: true, dosage_form: "Tablet", strength: "50mg", manufacturer: "Merck",
     images: ["https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&q=80"],
   },
   // ── Antidiabetics ────────────────────────────────────────────────────────
@@ -87,6 +91,7 @@ const products = [
     name: "Metformin 500mg Tablets",
     description: "First-line oral medication for type 2 diabetes that helps control blood sugar levels.",
     buying_price: 120, selling_price: 700, stock: 300,
+    requires_prescription: true, dosage_form: "Tablet", strength: "500mg", manufacturer: "Bristol-Myers Squibb",
     images: ["https://images.unsplash.com/photo-1550572017-edd951b55104?w=600&q=80"],
   },
   {
@@ -94,6 +99,7 @@ const products = [
     name: "Glibenclamide 5mg Tablets",
     description: "Sulfonylurea used to stimulate insulin secretion in type 2 diabetes management.",
     buying_price: 100, selling_price: 200, stock: 180,
+    requires_prescription: true, dosage_form: "Tablet", strength: "5mg", manufacturer: "Sanofi",
     images: ["https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=600&q=80"],
   },
   // ── Pain Relief ──────────────────────────────────────────────────────────
@@ -102,6 +108,7 @@ const products = [
     name: "Paracetamol 500mg Tablets",
     description: "Common analgesic and antipyretic for relief of mild to moderate pain and fever reduction.",
     buying_price: 30, selling_price: 32, stock: 500,
+    requires_prescription: false, dosage_form: "Tablet", strength: "500mg", manufacturer: "GSK",
     images: ["https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&q=80"],
   },
   {
@@ -109,6 +116,7 @@ const products = [
     name: "Ibuprofen 400mg Tablets",
     description: "Non-steroidal anti-inflammatory drug (NSAID) for pain, fever, and inflammation.",
     buying_price: 50, selling_price: 100, stock: 400,
+    requires_prescription: false, dosage_form: "Tablet", strength: "400mg", manufacturer: "Pfizer",
     images: ["https://images.unsplash.com/photo-1550572017-edd951b55104?w=600&q=80"],
   },
   {
@@ -116,6 +124,7 @@ const products = [
     name: "Diclofenac Gel 1% 50g",
     description: "Topical NSAID gel for localised pain relief in muscles and joints.",
     buying_price: 180, selling_price: 599, stock: 90,
+    requires_prescription: false, dosage_form: "Gel", strength: "1%", manufacturer: "Novartis",
     images: ["https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=600&q=80"],
   },
   // ── Cold & Flu ───────────────────────────────────────────────────────────
@@ -124,6 +133,7 @@ const products = [
     name: "Actifed Cold & Flu Tablets",
     description: "Combination decongestant and antihistamine for relief of cold and flu symptoms.",
     buying_price: 80, selling_price: 500, stock: 200,
+    requires_prescription: false, dosage_form: "Tablet", strength: "Combination", manufacturer: "Johnson & Johnson",
     images: ["https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&q=80"],
   },
   {
@@ -131,6 +141,7 @@ const products = [
     name: "Benylin Cough Syrup 200ml",
     description: "Expectorant cough syrup that helps loosen and clear mucus from the airways.",
     buying_price: 200, selling_price: 550, stock: 150,
+    requires_prescription: false, dosage_form: "Syrup", strength: "100mg/5ml", manufacturer: "Johnson & Johnson",
     images: ["https://images.unsplash.com/photo-1550572017-edd951b55104?w=600&q=80"],
   },
   // ── Antacids ─────────────────────────────────────────────────────────────
@@ -139,6 +150,7 @@ const products = [
     name: "Gaviscon Liquid 300ml",
     description: "Antacid and alginate for fast relief of heartburn, acid reflux, and indigestion.",
     buying_price: 350, selling_price: 900, stock: 100,
+    requires_prescription: false, dosage_form: "Liquid", strength: "500mg/5ml", manufacturer: "Reckitt",
     images: ["https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=600&q=80"],
   },
   {
@@ -146,6 +158,7 @@ const products = [
     name: "Omeprazole 20mg Capsules",
     description: "Proton pump inhibitor for treatment of acid reflux, gastric ulcers, and GERD.",
     buying_price: 140, selling_price: 300, stock: 220,
+    requires_prescription: false, dosage_form: "Capsule", strength: "20mg", manufacturer: "AstraZeneca",
     images: ["https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&q=80"],
   },
   // ── Multivitamins ────────────────────────────────────────────────────────
@@ -154,6 +167,7 @@ const products = [
     name: "Centrum Adults Multivitamin 60 Tablets",
     description: "Complete daily multivitamin with 24 essential vitamins and minerals for adults.",
     buying_price: 700, selling_price: 499, stock: 80,
+    requires_prescription: false, dosage_form: "Tablet", strength: "Multivitamin blend", manufacturer: "Pfizer",
     images: ["https://images.unsplash.com/photo-1550572017-edd951b55104?w=600&q=80"],
   },
   {
@@ -161,6 +175,7 @@ const products = [
     name: "Supradyn Energy Effervescent Tablets",
     description: "Effervescent multivitamin with B-vitamins and minerals to combat fatigue and boost energy.",
     buying_price: 550, selling_price: 120, stock: 60,
+    requires_prescription: false, dosage_form: "Effervescent Tablet", strength: "Multivitamin blend", manufacturer: "Bayer",
     images: ["https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=600&q=80"],
   },
   // ── Minerals ─────────────────────────────────────────────────────────────
@@ -169,6 +184,7 @@ const products = [
     name: "Calcium + Vitamin D3 Tablets",
     description: "Calcium carbonate with vitamin D3 for strong bones and teeth.",
     buying_price: 300, selling_price: 450, stock: 120,
+    requires_prescription: false, dosage_form: "Tablet", strength: "500mg + 400IU", manufacturer: "Sandoz",
     images: ["https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&q=80"],
   },
   {
@@ -176,6 +192,7 @@ const products = [
     name: "Ferrous Sulphate 200mg Tablets",
     description: "Iron supplement for prevention and treatment of iron-deficiency anaemia.",
     buying_price: 90, selling_price: 450, stock: 250,
+    requires_prescription: false, dosage_form: "Tablet", strength: "200mg", manufacturer: "Teva",
     images: ["https://images.unsplash.com/photo-1550572017-edd951b55104?w=600&q=80"],
   },
   // ── Herbal Supplements ───────────────────────────────────────────────────
@@ -184,6 +201,7 @@ const products = [
     name: "Echinacea Immune Support 60 Capsules",
     description: "Herbal supplement to support immune function and reduce duration of colds.",
     buying_price: 400, selling_price: 300, stock: 70,
+    requires_prescription: false, dosage_form: "Capsule", strength: "400mg", manufacturer: "Nature's Way",
     images: ["https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=600&q=80"],
   },
   // ── Skin Care ────────────────────────────────────────────────────────────
@@ -192,6 +210,7 @@ const products = [
     name: "Nivea Soft Moisturising Cream 200ml",
     description: "Lightweight moisturising cream with jojoba oil and vitamin E for face, hands, and body.",
     buying_price: 250, selling_price: 250, stock: 150,
+    requires_prescription: false, dosage_form: "Cream", strength: null, manufacturer: "Beiersdorf",
     images: ["https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=600&q=80"],
   },
   {
@@ -199,6 +218,7 @@ const products = [
     name: "Neutrogena SPF 50 Sunscreen 88ml",
     description: "Broad-spectrum UVA/UVB sunscreen lotion for daily skin protection.",
     buying_price: 600, selling_price: 300, stock: 80,
+    requires_prescription: false, dosage_form: "Lotion", strength: "SPF 50", manufacturer: "Neutrogena",
     images: ["https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=600&q=80"],
   },
   // ── Oral Care ────────────────────────────────────────────────────────────
@@ -207,6 +227,7 @@ const products = [
     name: "Colgate Total Toothpaste 150g",
     description: "Antibacterial toothpaste providing 12-hour protection against germs on teeth, tongue, cheeks, and gums.",
     buying_price: 120, selling_price: 450, stock: 300,
+    requires_prescription: false, dosage_form: "Paste", strength: null, manufacturer: "Colgate-Palmolive",
     images: ["https://images.unsplash.com/photo-1559591937-abc3e3e4e1b5?w=600&q=80"],
   },
   {
@@ -214,6 +235,7 @@ const products = [
     name: "Listerine Cool Mint Mouthwash 500ml",
     description: "Antiseptic mouthwash that kills 99.9% of germs and freshens breath for up to 12 hours.",
     buying_price: 350, selling_price: 550, stock: 120,
+    requires_prescription: false, dosage_form: "Liquid", strength: null, manufacturer: "Johnson & Johnson",
     images: ["https://images.unsplash.com/photo-1559591937-abc3e3e4e1b5?w=600&q=80"],
   },
   // ── Hair Care ────────────────────────────────────────────────────────────
@@ -222,6 +244,7 @@ const products = [
     name: "Head & Shoulders Anti-Dandruff Shampoo 400ml",
     description: "Clinically proven anti-dandruff shampoo with zinc pyrithione for flake-free hair.",
     buying_price: 400, selling_price: 899, stock: 100,
+    requires_prescription: false, dosage_form: "Shampoo", strength: "1% ZPT", manufacturer: "Procter & Gamble",
     images: ["https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=600&q=80"],
   },
   // ── Blood Pressure Monitors ──────────────────────────────────────────────
@@ -230,6 +253,7 @@ const products = [
     name: "Omron HEM-7120 Automatic BP Monitor",
     description: "Clinically validated upper arm blood pressure monitor with irregular heartbeat detection.",
     buying_price: 2500, selling_price: 3000, stock: 30,
+    requires_prescription: false, dosage_form: "Device", strength: null, manufacturer: "Omron",
     images: ["https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=600&q=80"],
   },
   {
@@ -237,6 +261,7 @@ const products = [
     name: "Beurer BM 27 Wrist BP Monitor",
     description: "Compact wrist blood pressure monitor with arrhythmia detection and 60-reading memory.",
     buying_price: 1800, selling_price: 3000, stock: 25,
+    requires_prescription: false, dosage_form: "Device", strength: null, manufacturer: "Beurer",
     images: ["https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=600&q=80"],
   },
   // ── Glucometers ──────────────────────────────────────────────────────────
@@ -245,6 +270,7 @@ const products = [
     name: "Accu-Chek Active Glucometer Kit",
     description: "Blood glucose monitoring system with 10 test strips, lancing device, and 10 lancets.",
     buying_price: 1500, selling_price: 2200, stock: 40,
+    requires_prescription: false, dosage_form: "Device", strength: null, manufacturer: "Roche",
     images: ["https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=600&q=80"],
   },
   {
@@ -252,6 +278,7 @@ const products = [
     name: "OneTouch Select Plus Glucometer",
     description: "Simple blood glucose meter with colour-range indicator and no-coding technology.",
     buying_price: 1200, selling_price: 1800, stock: 35,
+    requires_prescription: false, dosage_form: "Device", strength: null, manufacturer: "LifeScan",
     images: ["https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&q=80"],
   },
   // ── Thermometers ─────────────────────────────────────────────────────────
@@ -260,6 +287,7 @@ const products = [
     name: "Braun ThermoScan 7 Ear Thermometer",
     description: "Professional-grade ear thermometer with ExacTemp technology for accurate readings in 2 seconds.",
     buying_price: 2800, selling_price: 4200, stock: 20,
+    requires_prescription: false, dosage_form: "Device", strength: null, manufacturer: "Braun",
     images: ["https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=600&q=80"],
   },
   {
@@ -267,6 +295,7 @@ const products = [
     name: "Non-Contact Infrared Forehead Thermometer",
     description: "Instant-read infrared thermometer for forehead temperature measurement, suitable for all ages.",
     buying_price: 1000, selling_price: 1600, stock: 50,
+    requires_prescription: false, dosage_form: "Device", strength: null, manufacturer: "Microlife",
     images: ["https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=600&q=80"],
   },
 ];
@@ -350,8 +379,9 @@ async function seed() {
       await client.query(
         `INSERT INTO ph_products
            (business_id, name, slug, description, stock, buying_price, selling_price,
-            status, category_id, sub_category_id, images)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8::product_status_enum,$9,$10,$11)
+            status, category_id, sub_category_id, images,
+            requires_prescription, dosage_form, strength, manufacturer)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8::product_status_enum,$9,$10,$11,$12,$13,$14,$15)
          ON CONFLICT (slug) DO NOTHING`,
         [
           BUSINESS_ID,
@@ -365,6 +395,10 @@ async function seed() {
           categoryId,
           subCategoryId,
           images,
+          p.requires_prescription ?? false,
+          p.dosage_form ?? null,
+          p.strength ?? null,
+          p.manufacturer ?? null,
         ]
       );
       console.log(`  ✔ Product: ${p.name}`);

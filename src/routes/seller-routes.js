@@ -13,6 +13,21 @@ const { CloudinaryService } = require("../utils/cloudinary");
 const upload = multer({ storage: multer.memoryStorage() });
 
 /* ------------------------------------------------------------------
+  PUBLIC: LIST APPROVED SELLERS (for search filter dropdown)
+------------------------------------------------------------------ */
+router.get("/", async (req, res, next) => {
+  try {
+    const result = await db.query(
+      `SELECT business_id, business_name FROM ph_sellers
+       WHERE status = 'approved' ORDER BY business_name ASC`
+    );
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ------------------------------------------------------------------
   SELLER ONBOARDING (Complete registration with business + documents)
 ------------------------------------------------------------------ */
 router.post("/onboard", async (req, res, next) => {

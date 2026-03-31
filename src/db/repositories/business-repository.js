@@ -25,9 +25,10 @@ class BusinessRepository {
         address,
         business_type,
         latitude,
-        longitude
+        longitude,
+        status
       )
-      VALUES ($1,$2,$3,$4,$5,$6)
+      VALUES ($1,$2,$3,$4,$5,$6,$7)
       RETURNING *;
     `;
 
@@ -37,7 +38,8 @@ class BusinessRepository {
       business.address,
       business.business_type || null,
       business.latitude,
-      business.longitude
+      business.longitude,
+      "approved" // For now let them get approved by default
     ];
 
     const res = await db.query(query, values);
