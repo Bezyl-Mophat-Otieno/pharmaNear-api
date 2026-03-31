@@ -204,6 +204,12 @@ class ProductRepository {
       categoryFilter = `AND p.category_id = $${i++}`;
     }
 
+    let manufacturerFilter = "";
+    if (manufacturer) {
+      values.push(manufacturer);
+      manufacturerFilter = `AND p.manufacturer ILIKE $${i++}`;
+    }
+
     // ORDER: cheapest first, then closest
     const orderBy = userLat && userLng
       ? "p.selling_price ASC, distance_km ASC"
@@ -228,6 +234,7 @@ class ProductRepository {
         ${businessFilter}
         ${prescriptionFilter}
         ${categoryFilter}
+        ${manufacturerFilter}
       ORDER BY ${orderBy}
       LIMIT $${limitParam} OFFSET $${offsetParam};
     `;
@@ -244,6 +251,7 @@ class ProductRepository {
     businessId = null,
     requiresPrescription = null,
     categoryId = null,
+    manufacturer = null,
   }) {
     const values = [];
     let i = 1;
@@ -275,6 +283,9 @@ class ProductRepository {
     let categoryFilter = "";
     if (categoryId) { values.push(categoryId); categoryFilter = `AND p.category_id = $${i++}`; }
 
+    let manufacturerFilter = "";
+    if (manufacturer) { values.push(manufacturer); manufacturerFilter = `AND p.manufacturer ILIKE $${i++}`; }
+
     const sql = `
       SELECT COUNT(*) AS total
       FROM ph_products p
@@ -287,7 +298,8 @@ class ProductRepository {
         ${distanceWhere}
         ${businessFilter}
         ${prescriptionFilter}
-        ${categoryFilter};
+        ${categoryFilter}
+        ${manufacturerFilter};
     `;
 
     const res = await db.query(sql, values);

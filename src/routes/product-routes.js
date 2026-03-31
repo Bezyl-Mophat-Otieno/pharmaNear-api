@@ -48,6 +48,23 @@ router.get("/admin", authenticate ,paginate, async (req, res, next) => {
 
 
 /* ------------------------------------------------------------------
+  PUBLIC: LIST DISTINCT MANUFACTURERS (for filter dropdown)
+------------------------------------------------------------------ */
+router.get("/manufacturers", async (req, res, next) => {
+  try {
+    const db = require("../db");
+    const result = await db.query(
+      `SELECT DISTINCT manufacturer FROM ph_products
+       WHERE manufacturer IS NOT NULL AND status = 'available'
+       ORDER BY manufacturer ASC`
+    );
+    res.status(200).json({ success: true, data: result.rows.map(r => r.manufacturer) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ------------------------------------------------------------------
   SEARCH PRODUCTS (Search + optional geo + secondary filters)
 ------------------------------------------------------------------ */
 router.get("/search", async (req, res, next) => {
@@ -55,7 +72,7 @@ router.get("/search", async (req, res, next) => {
     const {
       search, latitude, longitude, radiusKm,
       // secondary filters
-      business_id, requires_prescription, category_id,
+      business_id, requires_prescription, category_id, manufacturer,
       page = 1, limit = 10,
     } = req.query;
 
@@ -75,6 +92,7 @@ router.get("/search", async (req, res, next) => {
         ? requires_prescription === "true"
         : null,
       categoryId: category_id || null,
+      manufacturer: manufacturer || null,
     };
 
     const [products, total] = await Promise.all([
