@@ -95,6 +95,7 @@ router.get("/search", async (req, res, next) => {
       manufacturer: manufacturer || null,
     };
 
+
     const [products, total] = await Promise.all([
       productRepo.searchProducts(searchParams),
       productRepo.countSearch(searchParams),
