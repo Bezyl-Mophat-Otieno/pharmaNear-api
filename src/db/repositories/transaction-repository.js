@@ -125,6 +125,21 @@ class TransactionRepository {
     const res = await db.query(query, params);
     return res.rows;
   }
+  async countAllTransactions({ businessId, status, transactionType, methodOfPayment }) {
+      let query = `
+        SELECT COUNT(*) AS total
+        FROM ph_transactions t
+        INNER JOIN ph_orders o ON o.order_id = t.order_id
+        WHERE o.business_id = $1
+      `;
+      const params = [businessId];
+      let p = 1;
+      if (status)          { p++; query += ` AND t.payment_status = $${p}::payment_status_enum`;    params.push(status); }
+      if (transactionType) { p++; query += ` AND t.transaction_type = $${p}::transaction_type_enum`; params.push(transactionType); }
+      if (methodOfPayment) { p++; query += ` AND t.method_of_payment = $${p}::method_of_payment_enum`; params.push(methodOfPayment); }
+      const res = await db.query(query, params);
+      return parseInt(res.rows[0].total, 10);
+    }
 
   async getTransactionById(id) {
     const res = await db.query(`

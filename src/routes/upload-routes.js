@@ -106,7 +106,7 @@ router.post("/sellers/files", authenticate, upload.single("file"), async (req, r
     const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
 
     const result = await CloudinaryService.uploadFile(fileBase64, {
-      folder: `pharma-near/sellers/${req.user.id}/documents`,
+      folder: `pharma-near/sellers/${req.user.user_id}/documents`,
     });
 
     res.status(201).json({

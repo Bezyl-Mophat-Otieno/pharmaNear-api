@@ -5,7 +5,7 @@ const { authenticate } = require("../middleware/auth");
 
 router.get("/", authenticate, async (req, res, next) => {
   try {
-    const data = await wishlistRepo.getAll(req.user.id);
+    const data = await wishlistRepo.getAll(req.user.user_id);
     res.status(200).json(data);
   } catch (err) {
     next(err);
@@ -14,7 +14,7 @@ router.get("/", authenticate, async (req, res, next) => {
 
 router.post("/:productId", authenticate, async (req, res, next) => {
   try {
-    const result = await wishlistRepo.add(req.user.id, req.params.productId);
+    const result = await wishlistRepo.add(req.user.user_id, req.params.productId);
     res.status(201).json({ message: "Added to wishlist", data: result });
   } catch (err) {
     next(err);
@@ -23,7 +23,7 @@ router.post("/:productId", authenticate, async (req, res, next) => {
 
 router.delete("/:productId", authenticate, async (req, res, next) => {
   try {
-    await wishlistRepo.remove(req.user.id, req.params.productId);
+    await wishlistRepo.remove(req.user.user_id, req.params.productId);
     res.status(204).send();
   } catch (err) {
     next(err);

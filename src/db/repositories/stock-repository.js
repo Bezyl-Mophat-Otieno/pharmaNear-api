@@ -58,6 +58,19 @@ class StockRepository {
     const res = await db.query(query, values);
     return res.rows;
   }
+  async countAllWithStock({ search = "", categoryId, status }) {
+      let filters = [];
+      let values = [];
+      let p = 0;
+      if (search)     { p++; filters.push(`p.name ILIKE $${p}`); values.push(`%${search}%`); }
+      if (categoryId) { p++; filters.push(`p.category_id = $${p}`); values.push(categoryId); }
+      if (status === 'out-of-stock') filters.push(`p.stock = 0`);
+      else if (status === 'low-stock') filters.push(`p.stock > 0 AND p.stock <= p.low_stock_threshold`);
+      else if (status === 'in-stock')  filters.push(`p.stock > p.low_stock_threshold`);
+      const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
+      const res = await db.query(`SELECT COUNT(*) AS total FROM ph_products p ${where}`, values);
+      return parseInt(res.rows[0].total, 10);
+    }
 
   async getStockStats() {
     const res = await db.query(`

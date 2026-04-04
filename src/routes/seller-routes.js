@@ -28,6 +28,63 @@ router.get("/", async (req, res, next) => {
 });
 
 /* ------------------------------------------------------------------
+  PUBLIC: SELLER STOREFRONT — lookup by business name slug
+  e.g. GET /sellers/storefront/city-pharmacy
+------------------------------------------------------------------ */
+router.get("/storefront/:slug", async (req, res, next) => {
+  try {
+    const { slug } = req.params;
+
+    // Convert slug back to a pattern for ILIKE matching
+    // e.g. "city-pharmacy" → "city pharmacy" (also handle mixed separators)
+    const namePattern = slug.replace(/-/g, ' ');
+
+    const bizRes = await db.query(
+      `SELECT business_id, business_name, address, latitude, longitude, business_type
+       FROM ph_sellers
+       WHERE LOWER(REPLACE(business_name, ' ', '-')) = LOWER($1)
+          OR LOWER(business_name) ILIKE $2
+       AND status = 'approved'
+       LIMIT 1`,
+      [slug, `%${namePattern}%`]
+    );
+
+    if (!bizRes.rows.length) {
+      return res.status(404).json({ success: false, message: "Store not found" });
+    }
+
+    const business = bizRes.rows[0];
+
+    const productsRes = await db.query(
+      `SELECT
+         p.product_id, p.name, p.slug, p.description, p.stock,
+         p.selling_price, p.discount_amount, p.status, p.is_featured,
+         p.images, p.requires_prescription, p.dosage_form, p.strength, p.manufacturer,
+         p.category_id, c.name AS category_name,
+         p.sub_category_id, s.name AS sub_category_name,
+         b.business_name, b.address, b.latitude, b.longitude
+       FROM ph_products p
+       INNER JOIN ph_sellers b ON b.business_id = p.business_id
+       INNER JOIN ph_categories c ON c.category_id = p.category_id
+       INNER JOIN ph_subcategories s ON s.sub_category_id = p.sub_category_id
+       WHERE p.business_id = $1 AND p.status = 'available'
+       ORDER BY p.selling_price ASC`,
+      [business.business_id]
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        business,
+        products: productsRes.rows,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ------------------------------------------------------------------
   SELLER ONBOARDING (Complete registration with business + documents)
 ------------------------------------------------------------------ */
 router.post("/onboard", async (req, res, next) => {
@@ -190,8 +247,7 @@ router.post("/upload/documents", upload.single("file"), async (req, res, next) =
 ------------------------------------------------------------------ */
 router.get("/my-business", authenticate, async (req, res, next) => {
   try {
-    const userId = req.user.id;
-
+    const userId = req.user.user_id;
     const businesses = await businessRepo.findByOwner(userId);
     if (!businesses || businesses.length === 0) {
       return res.status(404).json({
@@ -201,13 +257,13 @@ router.get("/my-business", authenticate, async (req, res, next) => {
     }
 
     const business = businesses[0];
-    const documents = await businessDocRepo.findByBusiness(business.business_id);
+    // const documents = await businessDocRepo.findByBusiness(business.business_id);
 
     res.status(200).json({
       success: true,
       data: {
         ...business,
-        documents
+        // documents
       }
     });
   } catch (err) {
@@ -401,7 +457,7 @@ router.post("/admin/:id/approve", authenticate, requireAdmin, async (req, res, n
     if (documentIds && documentIds.length > 0) {
       await businessDocRepo.approveDocuments({
         documentIds,
-        adminUserId: req.user.id
+        adminUserId: req.user.user_id
       });
     }
 
@@ -458,7 +514,7 @@ router.post("/admin/:id/reject", authenticate, requireAdmin, async (req, res, ne
       await businessDocRepo.rejectDocuments({
         documentIds: rejectedDocumentIds,
         rejectionReason: reason,
-        adminUserId: req.user.id
+        adminUserId: req.user.user_id
       });
     }
 
@@ -526,7 +582,7 @@ router.delete("/admin/:id", authenticate, requireAdmin, async (req, res, next) =
 ------------------------------------------------------------------ */
 router.put("/my-business", authenticate, async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.user_id;
 
     const businesses = await businessRepo.findByOwner(userId);
     if (!businesses || businesses.length === 0) {
@@ -582,7 +638,7 @@ router.get("/:id/documents", authenticate, async (req, res, next) => {
 
     // Check authorization
     const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
-    const isOwner = business.owner_user_id === req.user.id;
+    const isOwner = business.owner_user_id === req.user.user_id;
 
     if (!isAdmin && !isOwner) {
       throw ApiError.forbidden("Access denied");

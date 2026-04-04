@@ -85,20 +85,24 @@ router.get("/user", authenticate, requireAdmin ,async (req, res, next) => {
 router.get("/", authenticate, requireAdmin, paginate, async (req, res, next) => {
   try {
     const { status } = req.query;
-    const { limit, offset } = req.pagination;
+    const { page, limit, offset } = req.pagination;
     const [business] = await BusinessRepository.findByOwner(req.user.user_id)
-    if(!business) res.status(404).json({success:false,message:"Business not found"})
-    const orders = await OrdersRepository.getAllOrders({
-      status,
-      businessId: business.business_id,
-      limit: limit ? parseInt(limit, 10) : 20,
-      offset: offset ? parseInt(offset, 10) : 0,
-    });
-
+    if(!business) return res.status(404).json({success:false,message:"Business not found"})
+    const [orders, total] = await Promise.all([
+      OrdersRepository.getAllOrders({
+        status,
+        businessId: business.business_id,
+        limit: parseInt(limit, 10) || 20,
+        offset: offset ? parseInt(offset, 10) : (page - 1) * limit,
+      }),
+      OrdersRepository.countAllOrders({ status, businessId: business.business_id }),
+    ]);
+    const limitNum = parseInt(limit, 10) || 20;
     res.status(200).json({
       success: true,
       message: "Orders retrieved successfully",
       data: orders,
+      pagination: { page, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) },
     });
   } catch (err) {
     next(err);

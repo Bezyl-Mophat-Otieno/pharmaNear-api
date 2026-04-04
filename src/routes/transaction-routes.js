@@ -55,23 +55,23 @@ router.post("/", authenticate, requireAdmin, async (req, res, next) => {
 router.get("/", authenticate, requireAdmin, paginate, async (req, res, next) => {
   try {
     const { status, transactionType, methodOfPayment } = req.query;
-    const { limit, offset } = req.pagination;
+    const { page, limit } = req.pagination;
+    const limitNum = parseInt(limit, 10) || 20;
+    const offset = (page - 1) * limitNum;
     const [business] = await BusinessRepository.findByOwner(req.user.user_id)
-    if(!business) res.status(404).json({success:false, message:"Business not found"})
-      
-    const transactions = await TransactionRepository.getAllTransactions({
-      businessId: business.business_id,
-      status,
-      transactionType,
-      methodOfPayment,
-      limit: parseInt(limit, 10) || 20,
-      offset: parseInt(offset, 10) || 0,
-    });
+    if(!business) return res.status(404).json({success:false, message:"Business not found"})
+
+    const filterArgs = { businessId: business.business_id, status, transactionType, methodOfPayment };
+    const [transactions, total] = await Promise.all([
+      TransactionRepository.getAllTransactions({ ...filterArgs, limit: limitNum, offset }),
+      TransactionRepository.countAllTransactions(filterArgs),
+    ]);
 
     res.status(200).json({
       success: true,
       message: "Transactions retrieved successfully",
       data: transactions,
+      pagination: { page, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) },
     });
   } catch (err) {
     next(err);

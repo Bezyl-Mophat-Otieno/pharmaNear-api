@@ -83,8 +83,13 @@ class ProductRepository {
       query += ` AND p.business_id = $1 `;
       params.push(businessId)
     }
-
     query += `ORDER BY p.created_at DESC`
+
+    if(offset !== undefined){
+      query += ` LIMIT $2 OFFSET $3`;
+      params.push(limit,offset) 
+
+    }
     const res = await db.query(query, params);
     return res.rows;
   }

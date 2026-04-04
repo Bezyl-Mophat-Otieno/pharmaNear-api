@@ -36,11 +36,23 @@ router.get("/", paginate, async (req, res, next) => {
 router.get("/admin", authenticate ,paginate, async (req, res, next) => {
   try {
     const { page, limit } = req.pagination;
-    const userId = req.user.user_id
-    const [business] = await businessRepository.findByOwner(userId)
-    if(!business) return res.status(404).json({success: false, message: "Business not found!"})
-    const products = await productRepo.findAll(page, limit, business.business_id);
-    res.status(200).json({success: true, message: "Products fetched successfully", data:products });
+    const userId = req.user.user_id;
+    const [business] = await businessRepository.findByOwner(userId);
+    if(!business) return res.status(404).json({success: false, message: "Business not found!"});
+    const limitNum = parseInt(limit, 10) || 10;
+    const products = await productRepo.findAll(page, limitNum, business.business_id);
+    // count
+    const countRes = await require("../db").query(
+      `SELECT COUNT(*) AS total FROM ph_products WHERE business_id = $1 AND status <> 'deleted'`,
+      [business.business_id]
+    );
+    const total = parseInt(countRes.rows[0].total, 10);
+    res.status(200).json({
+      success: true,
+      message: "Products fetched successfully",
+      data: products,
+      pagination: { page, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) },
+    });
   } catch (err) {
     next(err);
   }

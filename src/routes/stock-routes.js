@@ -10,21 +10,20 @@ router.get("/", authenticate, requireAdmin, paginate, async (req, res, next) => 
   try {
     const { page, limit } = req.pagination;
     const { search, categoryId, status } = req.query;
+    const limitNum = parseInt(limit, 10) || 20;
+    const offset = (page - 1) * limitNum;
 
-    const filters = {
-      search: search || "",
-      categoryId,
-      status,
-      limit: parseInt(limit, 10) || 50,
-      offset: (page - 1) * limit,
-    };
+    const filters = { search: search || "", categoryId, status, limit: limitNum, offset };
+    const [products, total] = await Promise.all([
+      stockRepo.getAllWithStock(filters),
+      stockRepo.countAllWithStock({ search: search || "", categoryId, status }),
+    ]);
 
-    const products = await stockRepo.getAllWithStock(filters);
-    
     res.status(200).json({
       success: true,
       message: "Stock data retrieved successfully",
       data: products,
+      pagination: { page, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) },
     });
   } catch (err) {
     next(err);

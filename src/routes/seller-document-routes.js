@@ -15,7 +15,7 @@ router.post("/:businessId", authenticate, async (req, res, next) => {
       businessId: req.params.businessId,
       documentType,
       file,
-      uploadedBy: req.user.id
+      uploadedBy: req.user.user_id
     });
 
     res.status(201).json({
@@ -70,7 +70,7 @@ router.get("/:businessId/:docId", authenticate, async (req, res, next) => {
 ------------------------------------------------------------------ */
 router.delete("/:businessId/:docId", authenticate, async (req, res, next) => {
   try {
-    const deleted = await businessDocRepo.deleteDocument(req.params.docId, req.user.id, req.user.isAdmin);
+    const deleted = await businessDocRepo.deleteDocument(req.params.docId, req.user.user_id, req.user.isAdmin);
     if (!deleted) return res.status(404).json({ error: "Document not found or access denied" });
 
     res.status(200).json({

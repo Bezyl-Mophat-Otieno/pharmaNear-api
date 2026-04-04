@@ -201,6 +201,13 @@ class OrdersRepository {
     const orderRes = await db.query(query, params);
     return orderRes.rows.map(o=> o.order);
   }
+  async countAllOrders({ status, businessId }) {
+      let query = `SELECT COUNT(DISTINCT o.order_id) AS total FROM ph_orders o WHERE o.business_id = $1`;
+      const params = [businessId];
+      if (status) { query += ` AND o.status = $2`; params.push(status); }
+      const res = await db.query(query, params);
+      return parseInt(res.rows[0].total, 10);
+    }
 
   async updateOrderStatus(id, status) {
     const res = await db.query(
